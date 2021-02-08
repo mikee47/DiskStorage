@@ -1,0 +1,90 @@
+#include <Storage/Disk/PartInfo.h>
+#include <FlashString/Array.hpp>
+#include <Storage/Disk/linux/efi.h>
+
+String toString(Storage::Disk::SysType type)
+{
+	using Type = Storage::Disk::SysType;
+	switch(type) {
+	case Type::unknown:
+		return F("unknown");
+	case Type::fat12:
+		return F("fat12");
+	case Type::fat16:
+		return F("fat16");
+	case Type::fat32:
+		return F("fat32");
+	case Type::exfat:
+		return F("exfat");
+	}
+
+	return nullptr;
+}
+
+namespace
+{
+template <typename T, typename... Args> size_t tprintln(Print& p, String tag, const T& value, Args... args)
+{
+	size_t n{0};
+	n += p.print(tag.padRight(20));
+	n += p.print(": ");
+	n += p.println(value, args...);
+	return n;
+}
+
+} // namespace
+
+namespace Storage
+{
+namespace Disk
+{
+String getTypeName(const Uuid& typeGuid)
+{
+	struct Entry {
+		const efi_guid_t* guid;
+		const FlashString* name;
+	};
+#define XX(name, ...) DEFINE_FSTR_LOCAL(FS_##name, #name)
+	EFI_PARTITION_TYPE_GUID_MAP(XX)
+#undef XX
+#define XX(name, ...) {&name##_GUID, &FS_##name},
+	DEFINE_FSTR_ARRAY_LOCAL(list, Entry, EFI_PARTITION_TYPE_GUID_MAP(XX))
+#undef XX
+
+	for(auto e : list) {
+		if(*e.guid == typeGuid) {
+			return *e.name;
+		}
+	}
+
+	return nullptr;
+}
+
+size_t DiskPart::printTo(Print& p) const
+{
+	size_t n{0};
+
+#define TPRINTLN(tag, value, ...) n += tprintln(p, F("  " tag), value, ##__VA_ARGS__)
+
+	TPRINTLN("Sys Type", systype);
+	if(typeGuid || uniqueGuid) {
+		String typeName = getTypeName(typeGuid);
+		if(typeName) {
+			TPRINTLN("EFI Type", typeName);
+		}
+		TPRINTLN("EFI Type GUID", typeGuid);
+		TPRINTLN("EFI Unique GUID", uniqueGuid);
+	}
+	if(sysind) {
+		TPRINTLN("Sys Indicator", String(sysind, HEX, 2));
+	}
+	if(sectorSize || clusterSize) {
+		TPRINTLN("Sector Size", sectorSize);
+		TPRINTLN("Cluster Size", clusterSize);
+	}
+
+	return n;
+}
+
+} // namespace Disk
+} // namespace Storage
