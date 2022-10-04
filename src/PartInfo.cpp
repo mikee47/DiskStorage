@@ -34,9 +34,7 @@ template <typename T, typename... Args> size_t tprintln(Print& p, String tag, co
 
 } // namespace
 
-namespace Storage
-{
-namespace Disk
+namespace Storage::Disk
 {
 String getTypeName(const Uuid& typeGuid)
 {
@@ -86,5 +84,21 @@ size_t DiskPart::printTo(Print& p) const
 	return n;
 }
 
-} // namespace Disk
-} // namespace Storage
+size_t PartInfo::printTo(Print& p) const
+{
+	size_t n = Partition::Info::printTo(p);
+
+	n += p.print(_F(", SysType "));
+	n += p.print(systype);
+	if(typeGuid) {
+		n += p.print(", EFI type ");
+		n += p.print(getTypeName(typeGuid));
+	}
+	if(uniqueGuid) {
+		n += p.print(", id ");
+		n += p.print(uniqueGuid);
+	}
+	return n;
+}
+
+} // namespace Storage::Disk

@@ -78,6 +78,8 @@ struct PartInfo : public Partition::Info, public DiskPart {
 	{
 		return this;
 	}
+
+	size_t printTo(Print& p) const override;
 };
 
 String getTypeName(const Uuid& typeGuid);
