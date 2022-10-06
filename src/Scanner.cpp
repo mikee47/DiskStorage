@@ -47,13 +47,13 @@ bool verifyGptHeader(gpt_header_t& gpt)
 	if(gpt.revision != GPT_HEADER_REVISION_V1) {
 		return false;
 	}
-	if(gpt.header_size != sizeof(gpt_header_t)) {
+	if(gpt.header_size < sizeof(gpt_header_t)) {
 		return false;
 	}
 
 	uint32_t crc32_saved = gpt.header_crc32;
 	gpt.header_crc32 = 0;
-	uint32_t bcc = crc32(&gpt, sizeof(gpt));
+	uint32_t bcc = crc32(&gpt, gpt.header_size);
 	gpt.header_crc32 = crc32_saved;
 	if(bcc != crc32_saved) {
 		debug_e("[GPT] bcc 0x%08x, ~bcc 0x%08x, crc32 0x%08x", bcc, ~bcc, crc32_saved);
@@ -188,7 +188,6 @@ std::unique_ptr<PartInfo> Scanner::next()
 
 		if(mbr.partition_record[0].os_type == EFI_PMBR_OSTYPE_EFI_GPT) {
 			// Load GPT header sector
-			// if(!readSectors(buffer.get(), GPT_PRIMARY_PARTITION_TABLE_LBA, 1)) {
 			if(!READ_SECTORS(buffer.get(), GPT_PRIMARY_PARTITION_TABLE_LBA, 1)) {
 				debug_e("[DD] GPT header read failed");
 				state = State::error;
