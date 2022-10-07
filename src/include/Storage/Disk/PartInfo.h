@@ -1,3 +1,22 @@
+/****
+ * PartInfo.h
+ *
+ * Copyright 2022 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the DiskStorage Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
+
 #pragma once
 
 #include <Storage/Partition.h>
@@ -66,22 +85,41 @@ struct DiskPart {
 	SysType systype{};		///< Identifies volume filing system type
 	SysIndicator sysind{};  ///< Partition sys value
 
+	/**
+	 * @brief Print full contents of this structure
+	 */
 	size_t printTo(Print& p) const;
 };
 
+/**
+ * @brief In-memory partition information
+ *
+ * A disk Storage::Partition refers to this instance.
+ */
 struct PartInfo : public Partition::Info, public DiskPart {
 	template <typename... Args> PartInfo(Args... args) : Partition::Info(args...), DiskPart{}
 	{
 	}
 
+	/**
+	 * @brief Obtain additional disk information
+	 *
+	 * Accessed via `Partition::diskpart()` method
+	 */
 	const Disk::DiskPart* diskpart() const override
 	{
 		return this;
 	}
 
+	/**
+	 * @brief Print important fields only
+	 */
 	size_t printTo(Print& p) const override;
 };
 
+/**
+ * @brief Get string for known GPT type GUIDs
+ */
 String getTypeName(const Uuid& typeGuid);
 
 } // namespace Disk

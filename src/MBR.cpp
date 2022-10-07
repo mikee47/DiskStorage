@@ -1,3 +1,23 @@
+/****
+ * MBR.cpp
+ *
+ * Copyright 2022 mikee47 <mike@sillyhouse.net>
+ * Based on http://elm-chan.org/fsw/ff/00index_e.html but heavily reworked
+ *
+ * This file is part of the DiskStorage Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
+
 #include <Storage/Disk/MBR.h>
 #include <Storage/Device.h>
 #include <Storage/Disk/SectorBuffer.h>

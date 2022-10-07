@@ -1,3 +1,22 @@
+/****
+ * Scanner.h
+ *
+ * Copyright 2022 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the DiskStorage Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
+
 #pragma once
 
 #include <Storage/Device.h>
@@ -10,12 +29,20 @@ namespace Disk
 {
 struct gpt_mbr_record_t;
 
+/**
+ * @brief Class to iterate through disk partition tables
+ *
+ * Supports MBR and GPT partitioning schemes.
+ */
 class Scanner
 {
 public:
 	Scanner(Device& device);
 	~Scanner();
 
+	/**
+	 * @brief Obtains the next partition entry (if any)
+	 */
 	std::unique_ptr<PartInfo> next();
 
 private:
