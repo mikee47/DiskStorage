@@ -23,10 +23,6 @@
 #include <Storage/Disk/SectorBuffer.h>
 #include <Storage/Disk/diskdefs.h>
 
-extern "C" {
-int os_get_random(void* buf, size_t len);
-}
-
 // Definitions from FileSystem
 namespace Storage::Disk
 {
@@ -69,7 +65,7 @@ ErrorCode createPartition(Device& device, const MBR::PartitionSpec* partitionSpe
 
 	unsigned partIndex;
 	uint32_t sect = sectorsPerTrack;
-	for(partIndex = 0; partIndex < partitionCount && sect < numDeviceSectors; ++partIndex) {
+	for(partIndex = 0; partIndex < partitionCount && sect < numDeviceSectors; ++partIndex, ++partitionSpec) {
 		uint32_t numPartSectors;
 		if(partitionSpec->size <= 100) {
 			// Size as percentage
