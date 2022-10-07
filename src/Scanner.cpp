@@ -24,9 +24,7 @@
 #include <debug_progmem.h>
 #include <Storage/Disk/diskdefs.h>
 
-namespace Storage
-{
-namespace Disk
+namespace Storage::Disk
 {
 namespace
 {
@@ -307,22 +305,4 @@ std::unique_ptr<PartInfo> Scanner::next()
 	return nullptr;
 }
 
-bool scanPartitions(Device& device)
-{
-	auto& dev = static_cast<CustomDevice&>(device);
-	dev.partitions().clear();
-
-	Scanner scanner(device);
-	std::unique_ptr<PartInfo> part;
-	while((part = scanner.next())) {
-		if(part->name.length() == 0 && part->uniqueGuid) {
-			part->name = part->uniqueGuid;
-		}
-		dev.partitions().add(part.release());
-	}
-
-	return true;
-}
-
-} // namespace Disk
-} // namespace Storage
+} // namespace Storage::Disk

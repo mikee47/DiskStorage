@@ -22,7 +22,9 @@
 #include "PartInfo.h"
 #include "Error.h"
 
-namespace Storage ::Disk::GPT
+namespace Storage::Disk
+{
+namespace GPT
 {
 /**
  * @brief Specification for creating a partition using the GPT scheme
@@ -45,6 +47,8 @@ struct PartitionSpec {
 	Uuid uniqueGuid;
 };
 
+} // namespace GPT
+
 /**
  * @brief Re-partition a device with the given set of GPT BASIC partitions
  * @param device
@@ -55,15 +59,15 @@ struct PartitionSpec {
  *
  * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
-ErrorCode createPartition(Device& device, const PartitionSpec* spec, size_t numSpecs);
+ErrorCode createPartition(Device& device, const GPT::PartitionSpec* spec, size_t numSpecs);
 
 /**
  * @brief Create a single GPT BASIC partition
  * @note All existing partition information is destroyed
  */
-inline ErrorCode createPartition(Device& device, PartitionSpec& spec)
+inline ErrorCode createPartition(Device& device, const GPT::PartitionSpec& spec)
 {
 	return createPartition(device, &spec, 1);
 }
 
-} // namespace Storage::Disk::GPT
+} // namespace Storage::Disk

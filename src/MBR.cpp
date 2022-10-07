@@ -28,9 +28,9 @@ int os_get_random(void* buf, size_t len);
 }
 
 // Definitions from FileSystem
-namespace Storage ::Disk::MBR
+namespace Storage::Disk
 {
-ErrorCode createPartition(Device& device, PartitionSpec* partitionSpec, size_t partitionCount)
+ErrorCode createPartition(Device& device, const MBR::PartitionSpec* partitionSpec, size_t partitionCount)
 {
 	if(partitionSpec == nullptr || partitionCount == 0 || partitionCount > 4) {
 		return Error::BadParam;
@@ -123,4 +123,4 @@ ErrorCode createPartition(Device& device, PartitionSpec* partitionSpec, size_t p
 	return device.write(0, &mbr, sectorSize) ? partIndex : Error::WriteFailure;
 }
 
-} // namespace Storage::Disk::MBR
+} // namespace Storage::Disk

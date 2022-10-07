@@ -45,6 +45,11 @@ public:
 	 */
 	std::unique_ptr<PartInfo> next();
 
+	explicit operator bool() const
+	{
+		return state != State::error;
+	}
+
 private:
 	enum class State {
 		idle,
@@ -67,8 +72,6 @@ private:
 	uint16_t sectorSize{0};
 	uint8_t sectorSizeShift{0};
 };
-
-bool scanPartitions(Device& device);
 
 } // namespace Disk
 } // namespace Storage

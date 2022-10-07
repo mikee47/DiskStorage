@@ -22,7 +22,9 @@
 #include "PartInfo.h"
 #include "Error.h"
 
-namespace Storage::Disk::MBR
+namespace Storage::Disk
+{
+namespace MBR
 {
 /**
  * @brief Specification for creating a partition using the MBR scheme
@@ -39,6 +41,8 @@ struct PartitionSpec {
 	SysIndicator sysIndicator;
 };
 
+} // namespace MBR
+
 /**
  * @brief Re-partition a device with the given set of partitions using the MBR scheme
  * @param device
@@ -49,15 +53,15 @@ struct PartitionSpec {
  *
  * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
-ErrorCode createPartition(Device& device, PartitionSpec* spec, size_t partitionCount);
+ErrorCode createPartition(Device& device, const MBR::PartitionSpec* spec, size_t partitionCount);
 
 /**
  * @brief Create a single MBR partition
  * @note All existing partition information is destroyed
  */
-inline ErrorCode createPartition(Device& device, PartitionSpec& spec)
+inline ErrorCode createPartition(Device& device, const MBR::PartitionSpec& spec)
 {
 	return createPartition(device, &spec, 1);
 }
 
-} // namespace Storage::Disk::MBR
+} // namespace Storage::Disk

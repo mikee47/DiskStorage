@@ -21,9 +21,7 @@
 
 #include <WString.h>
 
-namespace Storage
-{
-namespace Disk
+namespace Storage::Disk
 {
 using ErrorCode = int;
 
@@ -52,5 +50,4 @@ enum {
 String toString(ErrorCode err);
 
 } // namespace Error
-} // namespace Disk
-} // namespace Storage
+} // namespace Storage::Disk

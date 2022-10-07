@@ -28,10 +28,10 @@ int os_get_random(void* buf, size_t len);
 }
 
 // Definitions from FileSystem
-namespace Storage ::Disk::GPT
+namespace Storage::Disk
 {
 /* Create partitions in GPT format */
-ErrorCode createPartition(Device& device, const PartitionSpec* partitionSpec, size_t numSpecs)
+ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpec, size_t numSpecs)
 {
 	if(partitionSpec == nullptr || numSpecs == 0) {
 		return Error::BadParam;
@@ -197,4 +197,4 @@ ErrorCode createPartition(Device& device, const PartitionSpec* partitionSpec, si
 	return partitionCount;
 }
 
-} // namespace Storage::Disk::GPT
+} // namespace Storage::Disk
