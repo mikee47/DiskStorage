@@ -23,10 +23,6 @@
 #include <Storage/Disk/SectorBuffer.h>
 #include <Storage/Disk/diskdefs.h>
 
-extern "C" {
-int os_get_random(void* buf, size_t len);
-}
-
 // Definitions from FileSystem
 namespace Storage::Disk
 {
@@ -37,16 +33,15 @@ ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpe
 		return Error::BadParam;
 	}
 
-	uint16_t sectorSize;
 #if DISK_MAX_SECTOR_SIZE != DISK_MIN_SECTOR_SIZE
-	sectorSize = device.getSectorSize();
+	const uint16_t sectorSize = device.getSectorSize();
 	if(sectorSize > DISK_MAX_SECTOR_SIZE || sectorSize < DISK_MIN_SECTOR_SIZE || !isLog2(sectorSize)) {
 		return Error::BadParam;
 	}
 #else
-	sectorSize = DISK_MAX_SECTOR_SIZE;
+	const uint16_t sectorSize = DISK_MAX_SECTOR_SIZE;
 #endif
-	uint8_t sectorSizeShift = getSizeBits(sectorSize);
+	const uint8_t sectorSizeShift = getSizeBits(sectorSize);
 
 	/* Get working buffer */
 	SectorBuffer workBuffer(sectorSize, 1);
@@ -58,19 +53,19 @@ ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpe
 		return device.write(sector << sectorSizeShift, buff, count << sectorSizeShift);
 	};
 
-	auto driveSectors = device.getSectorCount();
-	auto partAlignSectors = GPT_ALIGN >> sectorSizeShift; // Partition alignment for GPT [sector]
-	auto numPartitionTableSectors =
+	const auto driveSectors = device.getSectorCount();
+	const auto partAlignSectors = GPT_ALIGN >> sectorSizeShift; // Partition alignment for GPT [sector]
+	const auto numPartitionTableSectors =
 		GPT_ITEMS * sizeof(gpt_entry_t) >> sectorSizeShift; // Size of partition table [sector]
-	uint64_t backupPartitionTableSector = driveSectors - numPartitionTableSectors - 1;
+	const uint64_t backupPartitionTableSector = driveSectors - numPartitionTableSectors - 1;
 	uint64_t nextAllocatableSector = 2 + numPartitionTableSectors;
-	uint64_t sz_pool = backupPartitionTableSector - nextAllocatableSector; // Size of allocatable area
-	uint32_t bcc = 0;													   // Cumulative partition entry checksum
+	const uint64_t sz_pool = backupPartitionTableSector - nextAllocatableSector; // Size of allocatable area
+	uint32_t bcc = 0;															 // Cumulative partition entry checksum
 	uint64_t sz_part = 1;
 	unsigned partitionIndex = 0; // partition table index
 	unsigned partitionCount = 0; // Number of partitions created
 	auto entries = workBuffer.as<gpt_entry_t[]>();
-	auto entriesPerSector = sectorSize / sizeof(gpt_entry_t);
+	const auto entriesPerSector = sectorSize / sizeof(gpt_entry_t);
 	for(; partitionIndex < GPT_ITEMS; ++partitionIndex) {
 		auto i = partitionIndex % entriesPerSector;
 		if(i == 0) {
@@ -93,6 +88,7 @@ ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpe
 			} else {
 				sz_part = partitionSpec->size >> sectorSizeShift;
 			}
+
 			// Clip the size at end of the pool
 			if(nextAllocatableSector + sz_part > backupPartitionTableSector) {
 				if(nextAllocatableSector < backupPartitionTableSector) {
@@ -106,31 +102,34 @@ ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpe
 			}
 		}
 
+		auto& entry = entries[i];
+
 		// Add a partition?
 		if(partitionSpec != nullptr) {
-			auto& entry = entries[i];
 			entry.partition_type_guid = PARTITION_BASIC_DATA_GUID;
 			if(partitionSpec->uniqueGuid) {
 				entry.unique_partition_guid = partitionSpec->uniqueGuid;
 			} else {
-				os_get_random(&entry.unique_partition_guid, sizeof(efi_guid_t));
+				entry.unique_partition_guid.generate();
 			}
 			entry.starting_lba = nextAllocatableSector;
 			entry.ending_lba = nextAllocatableSector + sz_part - 1;
 			nextAllocatableSector += sz_part;
 
 			auto namePtr = partitionSpec->name.c_str();
-			while(i < ARRAY_SIZE(entry.partition_name) && *namePtr != '\0') {
-				entry.partition_name[i++] = *namePtr++;
+			for(unsigned j = 0; j < ARRAY_SIZE(entry.partition_name) && *namePtr != '\0'; ++j, ++namePtr) {
+				entry.partition_name[j] = *namePtr;
 			}
 
 			++partitionCount;
+			++partitionSpec;
 		}
 
+		// Update cumulative partition entry checksum
+		bcc = crc32(bcc, &entry, sizeof(entry));
+
 		// Write the buffer if it is filled up
-		if(partitionIndex + 1 == entriesPerSector) {
-			// Update cumulative partition entry checksum
-			bcc = crc32(bcc, entries, sectorSize);
+		if(i + 1 == entriesPerSector) {
 			// Write to primary table
 			auto entryRelativeSector = partitionIndex / entriesPerSector;
 			if(!writeSectors(2 + entryRelativeSector, entries, 1)) {
@@ -158,7 +157,7 @@ ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpe
 		.sizeof_partition_entry = sizeof(gpt_entry_t),
 		.partition_entry_array_crc32 = bcc,
 	};
-	os_get_random(&header.disk_guid, sizeof(efi_guid_t));
+	header.disk_guid.generate();
 	header.header_crc32 = crc32(&header, sizeof(header));
 	if(!writeSectors(header.my_lba, &header, 1)) {
 		return Error::WriteFailure;
@@ -182,11 +181,11 @@ ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpe
 			.start_sector = 2,
 			.start_track = 0,
 			.os_type = EFI_PMBR_OSTYPE_EFI_GPT,
-			.end_head = 0xfe,
+			.end_head = 0xff,
 			.end_sector = 0xff,
-			.end_track = 0,
+			.end_track = 0xff,
 			.starting_lba = 1,
-			.size_in_lba = 0xffffffff,
+			.size_in_lba = uint32_t(std::min(storage_size_t(0xffffffff), driveSectors - 1)),
 		}},
 		.signature = MSDOS_MBR_SIGNATURE,
 	};
