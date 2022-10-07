@@ -247,10 +247,12 @@ std::unique_ptr<PartInfo> Scanner::next()
 				partitionIndex = 0;
 				continue;
 			}
+			++mbrPartID;
 			storage_size_t offset = entry.starting_lba << sectorSizeShift;
 			auto part = identify(device, buffer, offset);
 			if(part == nullptr) {
 				part = new PartInfo{};
+				part->name = "MBR" + String(mbrPartID);
 				part->offset = offset;
 				part->size = entry.size_in_lba << sectorSizeShift;
 			}

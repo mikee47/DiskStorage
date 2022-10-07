@@ -69,6 +69,7 @@ private:
 	std::unique_ptr<gpt_mbr_record_t[]> mbrEntries; // MBR
 	uint16_t numPartitionEntries{0};
 	uint16_t partitionIndex{0};
+	uint16_t mbrPartID{0};
 	uint16_t sectorSize{0};
 	uint8_t sectorSizeShift{0};
 };
