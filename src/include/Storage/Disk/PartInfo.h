@@ -117,11 +117,6 @@ struct PartInfo : public Partition::Info, public DiskPart {
 	size_t printTo(Print& p) const override;
 };
 
-/**
- * @brief Get string for known GPT type GUIDs
- */
-String getTypeName(const Uuid& typeGuid);
-
 } // namespace Disk
 } // namespace Storage
 

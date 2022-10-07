@@ -17,9 +17,8 @@
  *
  ****/
 
-#include <Storage/Disk/PartInfo.h>
-#include <FlashString/Array.hpp>
-#include <Storage/Disk/linux/efi.h>
+#include "include/Storage/Disk/PartInfo.h"
+#include "include/Storage/Disk/GPT.h"
 
 String toString(Storage::Disk::SysType type)
 {
@@ -55,28 +54,6 @@ template <typename T, typename... Args> size_t tprintln(Print& p, String tag, co
 
 namespace Storage::Disk
 {
-String getTypeName(const Uuid& typeGuid)
-{
-	struct Entry {
-		const efi_guid_t* guid;
-		const FlashString* name;
-	};
-#define XX(name, ...) DEFINE_FSTR_LOCAL(FS_##name, #name)
-	EFI_PARTITION_TYPE_GUID_MAP(XX)
-#undef XX
-#define XX(name, ...) {&name##_GUID, &FS_##name},
-	DEFINE_FSTR_ARRAY_LOCAL(list, Entry, EFI_PARTITION_TYPE_GUID_MAP(XX))
-#undef XX
-
-	for(auto e : list) {
-		if(*e.guid == typeGuid) {
-			return *e.name;
-		}
-	}
-
-	return nullptr;
-}
-
 size_t DiskPart::printTo(Print& p) const
 {
 	size_t n{0};
@@ -85,7 +62,7 @@ size_t DiskPart::printTo(Print& p) const
 
 	TPRINTLN("Sys Type", systype);
 	if(typeGuid || uniqueGuid) {
-		String typeName = getTypeName(typeGuid);
+		String typeName = GPT::getTypeName(typeGuid);
 		if(typeName) {
 			TPRINTLN("EFI Type", typeName);
 		}
@@ -110,11 +87,12 @@ size_t PartInfo::printTo(Print& p) const
 	n += p.print(_F(", SysType "));
 	n += p.print(systype);
 	if(typeGuid) {
-		n += p.print(", EFI type ");
-		n += p.print(getTypeName(typeGuid));
+		n += p.print(_F(", EFI type "));
+		String s = GPT::getTypeName(typeGuid);
+		n += p.print(s ?: typeGuid);
 	}
 	if(uniqueGuid) {
-		n += p.print(", id ");
+		n += p.print(_F(", id "));
 		n += p.print(uniqueGuid);
 	}
 	return n;

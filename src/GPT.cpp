@@ -22,10 +22,41 @@
 #include <Storage/Device.h>
 #include <Storage/Disk/SectorBuffer.h>
 #include <Storage/Disk/diskdefs.h>
+#include <FlashString/Array.hpp>
 
 // Definitions from FileSystem
 namespace Storage::Disk
 {
+namespace GPT
+{
+#define XX(name, ...) const Uuid name##_GUID PROGMEM{__VA_ARGS__};
+EFI_PARTITION_TYPE_GUID_MAP(XX)
+#undef XX
+
+String getTypeName(const Uuid& typeGuid)
+{
+	struct Entry {
+		const Uuid* guid;
+		const FlashString* name;
+	};
+#define XX(name, ...) DEFINE_FSTR_LOCAL(FS_##name, #name)
+	EFI_PARTITION_TYPE_GUID_MAP(XX)
+#undef XX
+#define XX(name, ...) {&name##_GUID, &FS_##name},
+	DEFINE_FSTR_ARRAY_LOCAL(list, Entry, EFI_PARTITION_TYPE_GUID_MAP(XX))
+#undef XX
+
+	for(auto e : list) {
+		if(*e.guid == typeGuid) {
+			return *e.name;
+		}
+	}
+
+	return nullptr;
+}
+
+} // namespace GPT
+
 /* Create partitions in GPT format */
 ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpec, size_t numSpecs)
 {
@@ -106,7 +137,7 @@ ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpe
 
 		// Add a partition?
 		if(partitionSpec != nullptr) {
-			entry.partition_type_guid = PARTITION_BASIC_DATA_GUID;
+			entry.partition_type_guid = partitionSpec->typeGuid ?: GPT::PARTITION_BASIC_DATA_GUID;
 			if(partitionSpec->uniqueGuid) {
 				entry.unique_partition_guid = partitionSpec->uniqueGuid;
 			} else {
