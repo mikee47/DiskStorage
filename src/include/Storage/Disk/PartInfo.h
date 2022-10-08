@@ -39,11 +39,7 @@ enum class SysType : uint8_t {
 
 using SysTypes = BitSet<uint8_t, SysType>;
 
-static constexpr SysTypes fatTypes = SysType::fat12 | SysType::fat16 | SysType::fat32
-#ifdef ENABLE_EXFAT
-									 | SysType::exfat
-#endif
-	;
+static constexpr SysTypes fatTypes = SysType::fat12 | SysType::fat16 | SysType::fat32 | SysType::exfat;
 
 /**
  * @brief MBR partition system type indicator values
