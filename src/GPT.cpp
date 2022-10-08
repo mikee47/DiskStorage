@@ -58,7 +58,8 @@ String getTypeName(const Uuid& typeGuid)
 } // namespace GPT
 
 /* Create partitions in GPT format */
-ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpec, size_t numSpecs)
+ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpec, size_t numSpecs,
+						  const Uuid& diskGuid)
 {
 	if(partitionSpec == nullptr || numSpecs == 0) {
 		return Error::BadParam;
@@ -188,7 +189,11 @@ ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpe
 		.sizeof_partition_entry = sizeof(gpt_entry_t),
 		.partition_entry_array_crc32 = bcc,
 	};
-	header.disk_guid.generate();
+	if(diskGuid) {
+		header.disk_guid = diskGuid;
+	} else {
+		header.disk_guid.generate();
+	}
 	header.header_crc32 = crc32(&header, sizeof(header));
 	if(!writeSectors(header.my_lba, &header, 1)) {
 		return Error::WriteFailure;

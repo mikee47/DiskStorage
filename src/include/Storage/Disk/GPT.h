@@ -82,15 +82,15 @@ struct PartitionSpec {
  *
  * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
-ErrorCode createPartition(Device& device, const GPT::PartitionSpec* spec, size_t numSpecs);
+ErrorCode createPartition(Device& device, const GPT::PartitionSpec* spec, size_t numSpecs, const Uuid& diskGuid = {});
 
 /**
  * @brief Create a single GPT BASIC partition
  * @note All existing partition information is destroyed
  */
-inline ErrorCode createPartition(Device& device, const GPT::PartitionSpec& spec)
+inline ErrorCode createPartition(Device& device, const GPT::PartitionSpec& spec, const Uuid& diskGuid = {})
 {
-	return createPartition(device, &spec, 1);
+	return createPartition(device, &spec, 1, diskGuid);
 }
 
 } // namespace Storage::Disk
