@@ -53,15 +53,6 @@ struct PartitionSpec {
  *
  * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
-ErrorCode createPartition(Device& device, const MBR::PartitionSpec* spec, size_t partitionCount);
-
-/**
- * @brief Create a single MBR partition
- * @note All existing partition information is destroyed
- */
-inline ErrorCode createPartition(Device& device, const MBR::PartitionSpec& spec)
-{
-	return createPartition(device, &spec, 1);
-}
+ErrorCode formatDisk(Device& device, const MBR::PartitionSpec* spec, size_t partitionCount);
 
 } // namespace Storage::Disk

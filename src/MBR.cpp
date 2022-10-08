@@ -26,7 +26,7 @@
 // Definitions from FileSystem
 namespace Storage::Disk
 {
-ErrorCode createPartition(Device& device, const MBR::PartitionSpec* partitionSpec, size_t partitionCount)
+ErrorCode formatDisk(Device& device, const MBR::PartitionSpec* partitionSpec, size_t partitionCount)
 {
 	if(partitionSpec == nullptr || partitionCount == 0 || partitionCount > 4) {
 		return Error::BadParam;

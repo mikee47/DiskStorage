@@ -58,8 +58,7 @@ String getTypeName(const Uuid& typeGuid)
 } // namespace GPT
 
 /* Create partitions in GPT format */
-ErrorCode createPartition(Device& device, const GPT::PartitionSpec* partitionSpec, size_t numSpecs,
-						  const Uuid& diskGuid)
+ErrorCode formatDisk(Device& device, const GPT::PartitionSpec* partitionSpec, size_t numSpecs, const Uuid& diskGuid)
 {
 	if(partitionSpec == nullptr || numSpecs == 0) {
 		return Error::BadParam;
