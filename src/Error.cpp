@@ -23,7 +23,7 @@ namespace Storage::Disk::Error
 {
 String toString(ErrorCode err)
 {
-	err = (err > 0) ? 0 : -err;
+	err = std::min(err, 0);
 	switch(err) {
 #define XX(tag, ...)                                                                                                   \
 	case tag:                                                                                                          \
