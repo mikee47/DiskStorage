@@ -75,12 +75,10 @@ inline SysType getSysTypeFromIndicator(SysIndicator si)
  * @brief Adds information specific to MBR/GPT disk partitions
  */
 struct DiskPart {
-	Uuid typeGuid;			///< GPT type GUID
-	Uuid uniqueGuid;		///< GPT partition unique GUID
-	uint32_t clusterSize{}; ///< Cluster size (bytes)
-	uint16_t sectorSize{};  ///< Sector size (bytes)
-	SysType systype{};		///< Identifies volume filing system type
-	SysIndicator sysind{};  ///< Partition sys value
+	Uuid typeGuid;		   ///< GPT type GUID
+	Uuid uniqueGuid;	   ///< GPT partition unique GUID
+	SysType systype{};	 ///< Identifies volume filing system type
+	SysIndicator sysind{}; ///< Partition sys value
 
 	/**
 	 * @brief Print full contents of this structure

@@ -72,10 +72,6 @@ size_t DiskPart::printTo(Print& p) const
 	if(sysind) {
 		TPRINTLN("Sys Indicator", String(sysind, HEX, 2));
 	}
-	if(sectorSize || clusterSize) {
-		TPRINTLN("Sector Size", sectorSize);
-		TPRINTLN("Cluster Size", clusterSize);
-	}
 
 	return n;
 }
