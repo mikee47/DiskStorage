@@ -19,15 +19,13 @@
  ****/
 
 #include <Storage/Disk/GPT.h>
-#include <Storage/Device.h>
+#include <Storage/CustomDevice.h>
 #include <Storage/Disk/SectorBuffer.h>
 #include <Storage/Disk/diskdefs.h>
 #include <FlashString/Array.hpp>
 
 // Definitions from FileSystem
-namespace Storage::Disk
-{
-namespace GPT
+namespace Storage::Disk::GPT
 {
 #define XX(name, ...) const Uuid name##_GUID PROGMEM{__VA_ARGS__};
 EFI_PARTITION_TYPE_GUID_MAP(XX)
@@ -55,12 +53,10 @@ String getTypeName(const Uuid& typeGuid)
 	return nullptr;
 }
 
-} // namespace GPT
-
 /* Create partitions in GPT format */
-ErrorCode formatDisk(Device& device, const GPT::PartitionSpec* partitionSpec, size_t numSpecs, const Uuid& diskGuid)
+ErrorCode formatDisk(Device& device, PartitionTable& partitions, const Uuid& diskGuid)
 {
-	if(partitionSpec == nullptr || numSpecs == 0) {
+	if(partitions.isEmpty()) {
 		return Error::BadParam;
 	}
 
@@ -97,27 +93,24 @@ ErrorCode formatDisk(Device& device, const GPT::PartitionSpec* partitionSpec, si
 	unsigned partitionCount = 0; // Number of partitions created
 	auto entries = workBuffer.as<gpt_entry_t[]>();
 	const auto entriesPerSector = sectorSize / sizeof(gpt_entry_t);
+	auto part = partitions.begin();
 	for(; partitionIndex < GPT_ITEMS; ++partitionIndex) {
 		auto i = partitionIndex % entriesPerSector;
 		if(i == 0) {
 			workBuffer.clear();
 		}
 
-		if(partitionIndex >= numSpecs) {
-			partitionSpec = nullptr;
-		}
-
 		// Is the size table not terminated?
-		if(partitionSpec != nullptr) {
+		if(part) {
 			// Align partition start
 			nextAllocatableSector = align_up(nextAllocatableSector, partAlignSectors);
 			// Is the size in percentage?
-			if(partitionSpec->size <= 100) {
-				sz_part = sz_pool * partitionSpec->size / 100U;
+			if(part->size <= 100) {
+				sz_part = sz_pool * part->size / 100U;
 				// Align partition end
 				sz_part = align_up(sz_part, partAlignSectors);
 			} else {
-				sz_part = partitionSpec->size >> sectorSizeShift;
+				sz_part = part->size >> sectorSizeShift;
 			}
 
 			// Clip the size at end of the pool
@@ -127,8 +120,8 @@ ErrorCode formatDisk(Device& device, const GPT::PartitionSpec* partitionSpec, si
 				} else {
 					// No room for any more partitions
 					// TODO: How to report this to the user? Return partition count?
-					sz_part = 0;
-					partitionSpec = nullptr;
+					part->size = sz_part = 0;
+					part = nullptr;
 				}
 			}
 		}
@@ -136,10 +129,14 @@ ErrorCode formatDisk(Device& device, const GPT::PartitionSpec* partitionSpec, si
 		auto& entry = entries[i];
 
 		// Add a partition?
-		if(partitionSpec != nullptr) {
-			entry.partition_type_guid = partitionSpec->typeGuid ?: GPT::PARTITION_BASIC_DATA_GUID;
-			if(partitionSpec->uniqueGuid) {
-				entry.unique_partition_guid = partitionSpec->uniqueGuid;
+		if(part) {
+			part->offset = nextAllocatableSector << sectorSizeShift;
+			part->size = sz_part << sectorSizeShift;
+
+			auto dp = part->diskpart();
+			entry.partition_type_guid = dp && dp->typeGuid ? dp->typeGuid : GPT::PARTITION_BASIC_DATA_GUID;
+			if(dp && dp->uniqueGuid) {
+				entry.unique_partition_guid = dp->uniqueGuid;
 			} else {
 				entry.unique_partition_guid.generate();
 			}
@@ -147,13 +144,15 @@ ErrorCode formatDisk(Device& device, const GPT::PartitionSpec* partitionSpec, si
 			entry.ending_lba = nextAllocatableSector + sz_part - 1;
 			nextAllocatableSector += sz_part;
 
-			auto namePtr = partitionSpec->name.c_str();
+			auto namePtr = part->name.c_str();
 			for(unsigned j = 0; j < ARRAY_SIZE(entry.partition_name) && *namePtr != '\0'; ++j, ++namePtr) {
 				entry.partition_name[j] = *namePtr;
 			}
 
 			++partitionCount;
-			++partitionSpec;
+			if(++part == partitions.end()) {
+				part = nullptr;
+			}
 		}
 
 		// Update cumulative partition entry checksum
@@ -228,7 +227,13 @@ ErrorCode formatDisk(Device& device, const GPT::PartitionSpec* partitionSpec, si
 		return Error::WriteFailure;
 	}
 
+	auto& pt = static_cast<CustomDevice&>(device).partitions();
+	pt.clear();
+	while(!partitions.isEmpty()) {
+		pt.add(partitions.pop());
+	}
+
 	return partitionCount;
 }
 
-} // namespace Storage::Disk
+} // namespace Storage::Disk::GPT

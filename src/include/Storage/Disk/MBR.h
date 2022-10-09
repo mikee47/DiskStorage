@@ -22,37 +22,44 @@
 #include "PartInfo.h"
 #include "Error.h"
 
-namespace Storage::Disk
+namespace Storage::Disk::MBR
 {
-namespace MBR
+class PartitionTable : public Partition::Info::OwnedList
 {
-/**
- * @brief Specification for creating a partition using the MBR scheme
- */
-struct PartitionSpec {
+public:
 	/**
-	 * @brief Size of volume in bytes, or as percentage of device size
-	 * Volume size will be rounded down to the appropriate alignment for the partitioning scheme.
+	 * @brief Add a new MBR partition definition
+	 * @param sysType Intended content for this partition (or 'unknown')
+	 * @param SysIndicator Appropriate system code SI_xxx
+	 * @param offset Start offset, or 0 to have position calculated
+	 * @param size Size of partition (in bytes), or percentage (0-100) of total partitionable disk space
+	 * @retval bool true on success
+	 * @note MBR does not have partition name field; this will appear as 'mbr1', 'mbr2', etc.
 	 */
-	storage_size_t size;
-	/**
-	 * @brief Partition identifier
-	 */
-	SysIndicator sysIndicator;
+	bool add(SysType sysType, SysIndicator sysIndicator, storage_size_t offset, storage_size_t size)
+	{
+		auto part =
+			new PartInfo(nullptr, fatTypes[sysType] ? Partition::SubType::Data::fat : Partition::SubType::Data::any,
+						 offset, size, 0);
+		if(part == nullptr) {
+			return false;
+		}
+		part->systype = sysType;
+		part->sysind = sysIndicator;
+		Partition::Info::OwnedList::add(part);
+		return true;
+	}
 };
-
-} // namespace MBR
 
 /**
  * @brief Re-partition a device with the given set of partitions using the MBR scheme
  * @param device
- * @param spec List of partition specifications
- * @param numSpecs Number of partitions to create
+ * @param partitions List of partition specifications
  * @retval ErrorCode On success, number of partitions created
  * @note All existing partition information is destroyed
  *
  * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
-ErrorCode formatDisk(Device& device, const MBR::PartitionSpec* spec, size_t partitionCount);
+ErrorCode formatDisk(Device& device, PartitionTable& partitions);
 
-} // namespace Storage::Disk
+} // namespace Storage::Disk::MBR

@@ -19,16 +19,16 @@
  ****/
 
 #include <Storage/Disk/MBR.h>
-#include <Storage/Device.h>
+#include <Storage/CustomDevice.h>
 #include <Storage/Disk/SectorBuffer.h>
 #include <Storage/Disk/diskdefs.h>
 
 // Definitions from FileSystem
-namespace Storage::Disk
+namespace Storage::Disk::MBR
 {
-ErrorCode formatDisk(Device& device, const MBR::PartitionSpec* partitionSpec, size_t partitionCount)
+ErrorCode formatDisk(Device& device, PartitionTable& partitions)
 {
-	if(partitionSpec == nullptr || partitionCount == 0 || partitionCount > 4) {
+	if(partitions.isEmpty() || partitions.count() > 4) {
 		return Error::BadParam;
 	}
 
@@ -63,20 +63,22 @@ ErrorCode formatDisk(Device& device, const MBR::PartitionSpec* partitionSpec, si
 	workBuffer.clear();
 	auto& mbr = workBuffer.as<legacy_mbr_t>();
 
-	unsigned partIndex;
+	unsigned partIndex{0};
 	uint32_t sect = sectorsPerTrack;
-	for(partIndex = 0; partIndex < partitionCount && sect < numDeviceSectors; ++partIndex, ++partitionSpec) {
+	for(auto& part : partitions) {
 		uint32_t numPartSectors;
-		if(partitionSpec->size <= 100) {
+		if(part.size <= 100) {
 			// Size as percentage
-			numPartSectors = uint64_t(partitionSpec->size) * (numDeviceSectors - sectorsPerTrack) / 100U;
+			numPartSectors = uint64_t(part.size) * (numDeviceSectors - sectorsPerTrack) / 100U;
 		} else {
-			numPartSectors = partitionSpec->size >> sectorSizeShift;
+			numPartSectors = part.size >> sectorSizeShift;
 		}
 		if(sect + numPartSectors > numDeviceSectors || sect + numPartSectors < sect) {
 			// Clip at drive size
 			numPartSectors = numDeviceSectors - sect;
 		}
+		// Return actual size to caller
+		part.size = numPartSectors << sectorSizeShift;
 		if(numPartSectors == 0) {
 			// End of table or no sector to allocate
 			break;
@@ -100,11 +102,12 @@ ErrorCode formatDisk(Device& device, const MBR::PartitionSpec* partitionSpec, si
 		auto start = calc_CHS(sect);
 		auto end = calc_CHS(sect + numPartSectors - 1);
 
+		auto dp = part.diskpart();
 		mbr.partition_record[partIndex] = gpt_mbr_record_t{
 			.start_head = start.head,
 			.start_sector = start.sector,
 			.start_track = start.track,
-			.os_type = partitionSpec->sysIndicator,
+			.os_type = dp ? dp->sysind : SI_IFS,
 			.end_head = end.head,
 			.end_sector = end.sector,
 			.end_track = end.track,
@@ -113,10 +116,21 @@ ErrorCode formatDisk(Device& device, const MBR::PartitionSpec* partitionSpec, si
 		};
 
 		sect += numPartSectors;
+		++partIndex;
 	}
 
 	mbr.signature = MSDOS_MBR_SIGNATURE;
-	return device.write(0, &mbr, sectorSize) ? partIndex : Error::WriteFailure;
+	if(!device.write(0, &mbr, sectorSize)) {
+		return Error::WriteFailure;
+	}
+
+	auto& pt = static_cast<CustomDevice&>(device).partitions();
+	pt.clear();
+	while(!partitions.isEmpty()) {
+		pt.add(partitions.pop());
+	}
+
+	return partIndex;
 }
 
-} // namespace Storage::Disk
+} // namespace Storage::Disk::MBR

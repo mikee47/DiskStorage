@@ -80,6 +80,10 @@ struct DiskPart {
 	SysType systype{};	 ///< Identifies volume filing system type
 	SysIndicator sysind{}; ///< Partition sys value
 
+	DiskPart()
+	{
+	}
+
 	/**
 	 * @brief Print full contents of this structure
 	 */
@@ -92,7 +96,7 @@ struct DiskPart {
  * A disk Storage::Partition refers to this instance.
  */
 struct PartInfo : public Partition::Info, public DiskPart {
-	template <typename... Args> PartInfo(Args... args) : Partition::Info(args...), DiskPart{}
+	template <typename... Args> PartInfo(Args... args) : Partition::Info(args...), DiskPart()
 	{
 	}
 

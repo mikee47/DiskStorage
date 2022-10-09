@@ -22,9 +22,7 @@
 #include "PartInfo.h"
 #include "Error.h"
 
-namespace Storage::Disk
-{
-namespace GPT
+namespace Storage::Disk::GPT
 {
 #define EFI_PARTITION_TYPE_GUID_MAP(XX)                                                                                \
 	XX(PARTITION_SYSTEM, 0xC12A7328, 0xF81F, 0x11d2, 0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B)                   \
@@ -40,48 +38,50 @@ namespace GPT
 EFI_PARTITION_TYPE_GUID_MAP(XX)
 #undef XX
 
+class PartitionTable : public Partition::Info::OwnedList
+{
+public:
+	/**
+	 * @brief Add a new GPT partition definition
+	 * @param name Partition name
+	 * @param sysType Intended content for this partition (or 'unknown')
+	 * @param offset Start offset, or 0 to have position calculated
+	 * @param size Size of partition (in bytes), or percentage (0-100) of total partitionable disk space
+	 * @param uniqueGuid Unique partition identifier (optional: will be generated if not provided)
+	 * @param typeGuid Partition type GUID (default is BASIC_DATA)
+	 * @retval bool true on success
+	 */
+	bool add(const String& name, SysType sysType, storage_size_t offset, storage_size_t size,
+			 const Uuid& uniqueGuid = {}, const Uuid& typeGuid = {})
+	{
+		auto part = new PartInfo(
+			name, fatTypes[sysType] ? Partition::SubType::Data::fat : Partition::SubType::Data::any, offset, size, 0);
+		if(part == nullptr) {
+			return false;
+		}
+		part->systype = sysType;
+		part->typeGuid = typeGuid;
+		part->uniqueGuid = uniqueGuid;
+		Partition::Info::OwnedList::add(part);
+		return true;
+	}
+};
+
 /**
  * @brief Get string for known GPT type GUIDs
  */
 String getTypeName(const Uuid& typeGuid);
 
 /**
- * @brief Specification for creating a partition using the GPT scheme
- */
-struct PartitionSpec {
-	/**
-	 * @brief Size of volume in bytes, or as percentage of device size
-	 * Volume size will be rounded down to the appropriate alignment for the partitioning scheme.
-	 */
-	storage_size_t size;
-	/**
-	 * @brief Partition name. Optional.
-	 */
-	String name;
-	/**
-	 * @brief Partition type GUID. Defaults to BASIC.
-	 */
-	Uuid typeGuid;
-	/**
-	 * @brief Random unique GUID to use
-	 * 
-	 * If null (default) then GUID will be generated automatically.
-	 */
-	Uuid uniqueGuid;
-};
-
-} // namespace GPT
-
-/**
  * @brief Re-partition a device with the given set of GPT BASIC partitions
  * @param device
- * @param spec List of partition specifications
+ * @param partitions List of partition specifications
  * @param numSpecs Number of partitions to create
  * @retval ErrorCode On success, number of partitions created
  * @note All existing partition information is destroyed
  *
  * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
-ErrorCode formatDisk(Device& device, const GPT::PartitionSpec* spec, size_t numSpecs, const Uuid& diskGuid = {});
+ErrorCode formatDisk(Device& device, PartitionTable& partitions, const Uuid& diskGuid = {});
 
-} // namespace Storage::Disk
+} // namespace Storage::Disk::GPT
