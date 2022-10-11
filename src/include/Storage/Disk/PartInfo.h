@@ -21,6 +21,7 @@
 
 #include <Storage/Partition.h>
 #include <Data/Uuid.h>
+#include "Error.h"
 
 namespace Storage
 {
@@ -115,6 +116,30 @@ struct PartInfo : public Partition::Info, public DiskPart {
 	 */
 	size_t printTo(Print& p) const override;
 };
+
+/**
+ * @brief Common type for MBR/GPT partition table
+ */
+class BasePartitionTable : public Partition::Info::OwnedList
+{
+};
+
+/**
+ * @brief Validate partition table entries
+ * @param firstAvailableBlock First block number which may be allocated to a partition
+ * @param totalAvailableBlocks Number of blocks available for partition allocation
+ * @param blockSize Size of a block for alignment
+ * @retval ErrorCode
+ *
+ * For each partition:
+ *
+ * - If size <= 100 then the actual size is calculated as a percentage and updated
+ * - If offset = 0 then a suitable location is found and the offset updated
+ *
+ * On success, partition entries are ordered by position.
+ */
+ErrorCode validate(BasePartitionTable& table, storage_size_t firstAvailableBlock, storage_size_t totalAvailableBlocks,
+				   uint16_t blockSize);
 
 } // namespace Disk
 } // namespace Storage

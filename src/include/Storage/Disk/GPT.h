@@ -40,7 +40,7 @@ namespace GPT
 EFI_PARTITION_TYPE_GUID_MAP(XX)
 #undef XX
 
-class PartitionTable : public Partition::Info::OwnedList
+class PartitionTable : public BasePartitionTable
 {
 public:
 	/**
@@ -64,8 +64,7 @@ public:
 		part->systype = sysType;
 		part->typeGuid = typeGuid;
 		part->uniqueGuid = uniqueGuid;
-		Partition::Info::OwnedList::add(part);
-		return true;
+		return BasePartitionTable::add(part);
 	}
 };
 

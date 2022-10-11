@@ -19,6 +19,7 @@
 
 #include "include/Storage/Disk/PartInfo.h"
 #include "include/Storage/Disk/GPT.h"
+#include <debug_progmem.h>
 
 String toString(Storage::Disk::SysType type)
 {
@@ -92,6 +93,92 @@ size_t PartInfo::printTo(Print& p) const
 		n += p.print(uniqueGuid);
 	}
 	return n;
+}
+
+ErrorCode validate(BasePartitionTable& table, storage_size_t firstAvailableBlock, storage_size_t totalAvailableBlocks,
+				   uint16_t blockSize)
+{
+	if(blockSize == 0) {
+		return Error::BadParam;
+	}
+
+	uint64_t minOffset = firstAvailableBlock * blockSize;
+	uint64_t maxOffset = ((firstAvailableBlock + totalAvailableBlocks) * blockSize) - 1;
+
+	uint64_t totalBlocks{0};
+	for(auto& part : table) {
+		if(part.size <= 100) {
+			auto blocks = uint64_t(totalAvailableBlocks) * part.size / blockSize;
+			part.size = blocks * blockSize;
+		} else if(part.size % blockSize != 0 || part.offset % blockSize != 0) {
+			debug_e("[DISK] Partition '%s' mis-aligned", part.name.c_str());
+			return Error::MisAligned;
+		}
+		if(part.offset != 0 && (part.offset < minOffset || part.offset > maxOffset)) {
+			debug_e("[DISK] Partition '%s' offset outside valid range (%llu <= %llu <= %llu", part.name.c_str(),
+					uint64_t(part.offset), minOffset, maxOffset);
+		}
+		totalBlocks += part.size / blockSize;
+	}
+
+	if(totalBlocks > totalAvailableBlocks) {
+		debug_e("[DISK] Partition table exceeds available space");
+		return Error::NoSpace;
+	}
+
+	// Create temporary list of references which can be sorted
+	Vector<Partition::Info*> list;
+	list.ensureCapacity(table.count());
+	for(auto& p : table) {
+		list.addElement(&p);
+	}
+
+	auto sortList = [&]() { list.sort([](auto& p1, auto& p2) -> int { return p1->offset > p2->offset ? 1 : 0; }); };
+	sortList();
+
+	auto align_up = [&](storage_size_t value) {
+		value += blockSize - 1;
+		value -= value % blockSize;
+		return value;
+	};
+
+	// Assign undefined offsets
+	while(list[0]->offset == 0) {
+		auto pz = list[0];
+		storage_size_t endOffset = minOffset;
+		for(unsigned j = 1; j < list.count(); ++j) {
+			auto pr = list[j];
+			if(pr->offset == 0) {
+				continue;
+			}
+			endOffset = align_up(pr->offset + pr->size);
+
+			if(j + 1 < list.count()) {
+				auto avail = list[j + 1]->offset - endOffset;
+				if(avail >= pz->size) {
+					break;
+				}
+			} else {
+				auto avail = maxOffset + 1 - endOffset;
+				if(avail >= pz->size) {
+					break;
+				}
+				debug_e("[DISK] No room for '%s'", pz->name.c_str());
+				return Error::NoSpace;
+			}
+		}
+		pz->offset = endOffset;
+		sortList();
+	}
+
+	auto lastPart = list.lastElement();
+	uint64_t endOffset = lastPart->offset + lastPart->size - 1;
+
+	assert(endOffset <= maxOffset);
+
+	debug_i("Unused space: %llu bytes (%llu blocks)", maxOffset - endOffset, (maxOffset - endOffset) / blockSize);
+
+	return Error::Success;
 }
 
 } // namespace Storage::Disk

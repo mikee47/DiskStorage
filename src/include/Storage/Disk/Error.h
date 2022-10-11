@@ -30,6 +30,8 @@ namespace Error
 #define DISK_ERRORCODE_MAP(XX)                                                                                         \
 	XX(Success, "Success")                                                                                             \
 	XX(BadParam, "Invalid parameter(s)")                                                                               \
+	XX(MisAligned, "Partition is mis-aligned")                                                                         \
+	XX(NoSpace, "No room for partition(s)")                                                                            \
 	XX(NoMem, "Memory allocation failed")                                                                              \
 	XX(ReadFailure, "Media read failed")                                                                               \
 	XX(WriteFailure, "Media write failed")                                                                             \

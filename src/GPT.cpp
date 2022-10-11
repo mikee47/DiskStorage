@@ -91,8 +91,13 @@ ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& dis
 	const uint64_t backupPartitionTableSector = driveSectors - numPartitionTableSectors - 1;
 	uint64_t nextAllocatableSector = 2 + numPartitionTableSectors;
 	const uint64_t sz_pool = backupPartitionTableSector - nextAllocatableSector; // Size of allocatable area
-	uint32_t bcc = 0;															 // Cumulative partition entry checksum
-	uint64_t sz_part = 1;
+
+	auto err = validate(partitions, nextAllocatableSector, sz_pool, sectorSize);
+	if(err) {
+		return err;
+	}
+
+	uint32_t bcc = 0; // Cumulative partition entry checksum
 	unsigned partitionIndex = 0; // partition table index
 	unsigned partitionCount = 0; // Number of partitions created
 	auto entries = workBuffer.as<gpt_entry_t[]>();
