@@ -63,7 +63,17 @@ public:
 
 	void clear()
 	{
-		std::fill_n(get(), mSize, 0);
+		fill(0);
+	}
+
+	void fill(uint8_t value)
+	{
+		std::fill_n(get(), mSize, value);
+	}
+
+	bool operator==(const SectorBuffer& other) const
+	{
+		return *this && other && mSize == other.mSize && memcmp(get(), other.get(), mSize) == 0;
 	}
 
 private:
