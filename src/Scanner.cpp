@@ -61,12 +61,15 @@ bool verifyGptHeader(gpt_header_t& gpt)
 {
 	/* Check signature, version (1.0) and length (92) */
 	if(gpt.signature != GPT_HEADER_SIGNATURE) {
+		debug_e("[GPT] Bad signature");
 		return false;
 	}
 	if(gpt.revision != GPT_HEADER_REVISION_V1) {
+		debug_e("[GPT] Bad revision");
 		return false;
 	}
-	if(gpt.header_size < sizeof(gpt_header_t)) {
+	if(gpt.header_size < GPT_HEADER_SIZE) {
+		debug_e("[GPT] Bad size %u", gpt.header_size);
 		return false;
 	}
 
@@ -79,9 +82,11 @@ bool verifyGptHeader(gpt_header_t& gpt)
 		return false;
 	}
 	if(gpt.sizeof_partition_entry != sizeof(gpt_entry_t)) {
+		debug_e("[GPT] Bad sizeof_partition_entry %u", gpt.sizeof_partition_entry);
 		return false;
 	}
 	if(gpt.num_partition_entries > 128) {
+		debug_e("[GPT] Bad num_partition_entries %u", gpt.num_partition_entries);
 		return false;
 	}
 
@@ -166,6 +171,7 @@ std::unique_ptr<PartInfo> Scanner::next()
 #if DISK_MAX_SECTOR_SIZE != DISK_MIN_SECTOR_SIZE
 		sectorSize = device.getSectorSize();
 		if(sectorSize > DISK_MAX_SECTOR_SIZE || sectorSize < DISK_MIN_SECTOR_SIZE || !isLog2(sectorSize)) {
+			debug_e("[DD] Invalid sector size %u", sectorSize);
 			state = State::error;
 			return nullptr;
 		}

@@ -151,7 +151,7 @@ Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGui
 	header = gpt_header_t{
 		.signature = GPT_HEADER_SIGNATURE,
 		.revision = GPT_HEADER_REVISION_V1,
-		.header_size = sizeof(gpt_header_t),
+		.header_size = GPT_HEADER_SIZE,
 		.my_lba = 1,
 		.alternate_lba = driveSectors - 1,
 		.first_usable_lba = 2 + numPartitionTableSectors,
@@ -166,7 +166,7 @@ Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGui
 	} else {
 		header.disk_guid.generate();
 	}
-	header.header_crc32 = crc32(&header, sizeof(header));
+	header.header_crc32 = crc32(&header, GPT_HEADER_SIZE);
 	if(!writeSectors(header.my_lba, &header, 1)) {
 		return Error::WriteFailure;
 	}
@@ -175,7 +175,7 @@ Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGui
 	std::swap(header.my_lba, header.alternate_lba);
 	header.partition_entry_lba = backupPartitionTableSector;
 	header.header_crc32 = 0;
-	header.header_crc32 = crc32(&header, sizeof(header));
+	header.header_crc32 = crc32(&header, GPT_HEADER_SIZE);
 	if(!writeSectors(header.my_lba, &header, 1)) {
 		return Error::WriteFailure;
 	}

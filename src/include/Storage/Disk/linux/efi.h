@@ -47,6 +47,10 @@ struct gpt_header_t {
 	 */
 };
 
+static_assert(sizeof(gpt_header_t) == 92 || sizeof(gpt_header_t) == 96);
+
+#define GPT_HEADER_SIZE 92
+
 struct gpt_entry_attributes_t {
 	uint64_t required_to_function : 1;
 	uint64_t reserved : 47;
@@ -61,6 +65,8 @@ struct gpt_entry_t {
 	gpt_entry_attributes_t attributes;
 	uint16_t partition_name[72 / sizeof(uint16_t)];
 };
+
+static_assert(sizeof(gpt_entry_t) == 128);
 
 struct __attribute__((packed)) gpt_mbr_record_t {
 	uint8_t boot_indicator; /* unused by EFI, set to 0x80 for bootable */
