@@ -26,7 +26,7 @@ namespace Storage::Disk
 {
 namespace MBR
 {
-class PartitionTable : public Partition::Info::OwnedList
+class PartitionTable : public BasePartitionTable
 {
 public:
 	/**

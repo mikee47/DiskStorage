@@ -96,29 +96,47 @@ size_t PartInfo::printTo(Print& p) const
 }
 
 ErrorCode validate(BasePartitionTable& table, storage_size_t firstAvailableBlock, storage_size_t totalAvailableBlocks,
-				   uint16_t blockSize)
+				   uint32_t blockSize)
 {
-	if(blockSize == 0) {
+	if(firstAvailableBlock == 0 || blockSize == 0) {
 		return Error::BadParam;
 	}
 
-	uint64_t minOffset = firstAvailableBlock * blockSize;
-	uint64_t maxOffset = ((firstAvailableBlock + totalAvailableBlocks) * blockSize) - 1;
+	auto is_aligned = [&](storage_size_t value, uint32_t alignment) { return value % alignment == 0; };
+	auto align = [&](storage_size_t value, uint32_t alignment) { return value - value % alignment; };
+	auto align_up = [&](storage_size_t value, uint32_t alignment) { return align(value + alignment - 1, alignment); };
+
+	const auto blockAlign = PARTITION_ALIGN / blockSize;
+
+	const uint64_t minOffset = firstAvailableBlock * blockSize;
+	const uint64_t maxOffset = uint64_t(firstAvailableBlock + totalAvailableBlocks) * blockSize - 1;
 
 	uint64_t totalBlocks{0};
 	for(auto& part : table) {
 		if(part.size <= 100) {
-			auto blocks = uint64_t(totalAvailableBlocks) * part.size / blockSize;
+			auto blocks = align_up(uint64_t(totalAvailableBlocks) * part.size / 100U, blockAlign);
+			if(totalBlocks + blocks > totalAvailableBlocks) {
+				// Clip to available space
+				blocks = totalAvailableBlocks - totalBlocks;
+				if(blocks == 0) {
+					debug_e("[DISK] No room for '%s', out of space", part.name.c_str());
+					return Error::NoSpace;
+				}
+			}
 			part.size = blocks * blockSize;
-		} else if(part.size % blockSize != 0 || part.offset % blockSize != 0) {
-			debug_e("[DISK] Partition '%s' mis-aligned", part.name.c_str());
-			return Error::MisAligned;
+			totalBlocks += blocks;
+		} else {
+			if(!is_aligned(part.offset, PARTITION_ALIGN)) {
+				debug_e("[DISK] Partition '%s' mis-aligned", part.name.c_str());
+				return Error::MisAligned;
+			}
+			totalBlocks += align_up(part.size, PARTITION_ALIGN);
 		}
 		if(part.offset != 0 && (part.offset < minOffset || part.offset > maxOffset)) {
 			debug_e("[DISK] Partition '%s' offset outside valid range (%llu <= %llu <= %llu", part.name.c_str(),
 					uint64_t(part.offset), minOffset, maxOffset);
+			return Error::OutOfRange;
 		}
-		totalBlocks += part.size / blockSize;
 	}
 
 	if(totalBlocks > totalAvailableBlocks) {
@@ -136,12 +154,6 @@ ErrorCode validate(BasePartitionTable& table, storage_size_t firstAvailableBlock
 	auto sortList = [&]() { list.sort([](auto& p1, auto& p2) -> int { return p1->offset > p2->offset ? 1 : 0; }); };
 	sortList();
 
-	auto align_up = [&](storage_size_t value) {
-		value += blockSize - 1;
-		value -= value % blockSize;
-		return value;
-	};
-
 	// Assign undefined offsets
 	while(list[0]->offset == 0) {
 		auto pz = list[0];
@@ -151,7 +163,7 @@ ErrorCode validate(BasePartitionTable& table, storage_size_t firstAvailableBlock
 			if(pr->offset == 0) {
 				continue;
 			}
-			endOffset = align_up(pr->offset + pr->size);
+			endOffset = align_up(pr->offset + pr->size, PARTITION_ALIGN);
 
 			if(j + 1 < list.count()) {
 				auto avail = list[j + 1]->offset - endOffset;

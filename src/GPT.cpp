@@ -85,14 +85,14 @@ ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& dis
 	};
 
 	const auto driveSectors = device.getSectorCount();
-	const auto partAlignSectors = GPT_ALIGN >> sectorSizeShift; // Partition alignment for GPT [sector]
+	const auto partAlignSectors = PARTITION_ALIGN >> sectorSizeShift; // Partition alignment for GPT [sector]
 	const auto numPartitionTableSectors =
 		GPT_ITEMS * sizeof(gpt_entry_t) >> sectorSizeShift; // Size of partition table [sector]
 	const uint64_t backupPartitionTableSector = driveSectors - numPartitionTableSectors - 1;
-	uint64_t nextAllocatableSector = 2 + numPartitionTableSectors;
-	const uint64_t sz_pool = backupPartitionTableSector - nextAllocatableSector; // Size of allocatable area
 
-	auto err = validate(partitions, nextAllocatableSector, sz_pool, sectorSize);
+	const uint64_t firstAllocatableSector = align_up(2 + numPartitionTableSectors, partAlignSectors);
+	const uint64_t allocatableSectors = backupPartitionTableSector - firstAllocatableSector;
+	auto err = validate(partitions, firstAllocatableSector, allocatableSectors, sectorSize);
 	if(err) {
 		return err;
 	}
@@ -109,39 +109,10 @@ ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& dis
 			workBuffer.clear();
 		}
 
-		// Is the size table not terminated?
-		if(part) {
-			// Align partition start
-			nextAllocatableSector = align_up(nextAllocatableSector, partAlignSectors);
-			// Is the size in percentage?
-			if(part->size <= 100) {
-				sz_part = sz_pool * part->size / 100U;
-				// Align partition end
-				sz_part = align_up(sz_part, partAlignSectors);
-			} else {
-				sz_part = part->size >> sectorSizeShift;
-			}
-
-			// Clip the size at end of the pool
-			if(nextAllocatableSector + sz_part > backupPartitionTableSector) {
-				if(nextAllocatableSector < backupPartitionTableSector) {
-					sz_part = backupPartitionTableSector - nextAllocatableSector;
-				} else {
-					// No room for any more partitions
-					// TODO: How to report this to the user? Return partition count?
-					part->size = sz_part = 0;
-					part = nullptr;
-				}
-			}
-		}
-
 		auto& entry = entries[i];
 
 		// Add a partition?
-		if(part) {
-			part->offset = nextAllocatableSector << sectorSizeShift;
-			part->size = sz_part << sectorSizeShift;
-
+		if(part != partitions.end()) {
 			auto dp = part->diskpart();
 			entry.partition_type_guid = dp && dp->typeGuid ? dp->typeGuid : GPT::PARTITION_BASIC_DATA_GUID;
 			if(dp && dp->uniqueGuid) {
@@ -149,9 +120,8 @@ ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& dis
 			} else {
 				entry.unique_partition_guid.generate();
 			}
-			entry.starting_lba = nextAllocatableSector;
-			entry.ending_lba = nextAllocatableSector + sz_part - 1;
-			nextAllocatableSector += sz_part;
+			entry.starting_lba = part->offset >> sectorSizeShift;
+			entry.ending_lba = entry.starting_lba + (part->size >> sectorSizeShift) - 1;
 
 			auto namePtr = part->name.c_str();
 			for(unsigned j = 0; j < ARRAY_SIZE(entry.partition_name) && *namePtr != '\0'; ++j, ++namePtr) {
@@ -159,9 +129,7 @@ ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& dis
 			}
 
 			++partitionCount;
-			if(++part == partitions.end()) {
-				part = nullptr;
-			}
+			++part;
 		}
 
 		// Update cumulative partition entry checksum

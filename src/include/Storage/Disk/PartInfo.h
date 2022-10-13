@@ -27,6 +27,15 @@ namespace Storage
 {
 namespace Disk
 {
+/*
+ * While not a native feature of file systems, operating systems should also aim to align partitions correctly,
+ * which avoids excessive read-modify-write cycles.
+ * A typical practice for personal computers is to have each partition aligned to start at a 1 MiB (= 1,048,576 bytes) mark,
+ * which covers all common SSD page and block size scenarios, as it is divisible by all commonly used sizes
+ * - 1 MiB, 512 KiB, 128 KiB, 4 KiB, and 512 B.
+ */
+constexpr uint32_t PARTITION_ALIGN{0x100000U};
+
 /**
  * @brief Identifies exact disk volume type
  */
@@ -128,7 +137,7 @@ class BasePartitionTable : public Partition::Info::OwnedList
  * @brief Validate partition table entries
  * @param firstAvailableBlock First block number which may be allocated to a partition
  * @param totalAvailableBlocks Number of blocks available for partition allocation
- * @param blockSize Size of a block for alignment
+ * @param blockSize Size of a block
  * @retval ErrorCode
  *
  * For each partition:
@@ -139,7 +148,7 @@ class BasePartitionTable : public Partition::Info::OwnedList
  * On success, partition entries are ordered by position.
  */
 ErrorCode validate(BasePartitionTable& table, storage_size_t firstAvailableBlock, storage_size_t totalAvailableBlocks,
-				   uint16_t blockSize);
+				   uint32_t blockSize);
 
 } // namespace Disk
 } // namespace Storage

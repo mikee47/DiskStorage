@@ -31,6 +31,7 @@ namespace Error
 	XX(Success, "Success")                                                                                             \
 	XX(BadParam, "Invalid parameter(s)")                                                                               \
 	XX(MisAligned, "Partition is mis-aligned")                                                                         \
+	XX(OutOfRange, "Partition offset out of valid range")                                                              \
 	XX(NoSpace, "No room for partition(s)")                                                                            \
 	XX(NoMem, "Memory allocation failed")                                                                              \
 	XX(ReadFailure, "Media read failed")                                                                               \
