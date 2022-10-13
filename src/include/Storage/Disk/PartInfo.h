@@ -46,25 +46,26 @@ static constexpr SysTypes fatTypes = SysType::fat12 | SysType::fat16 | SysType::
  * @see https://en.wikipedia.org/wiki/Partition_type#List_of_partition_IDs
  */
 enum SysIndicator {
+	SI_FAT12 = 0x01,
+	SI_FAT16 = 0x04,  ///< FAT16 with fewer than 65536 sectors
+	SI_FAT16B = 0x06, ///< FAT16B with 65536 or more sectors
+	SI_IFS = 0x07,
 	SI_EXFAT = 0x07,
 	SI_FAT32X = 0x0c, ///< FAT32 with LBA
-	SI_FAT16B = 0x06, ///< FAT16B with 65536 or more sectors
-	SI_FAT16 = 0x04,  ///< FAT16 with fewer than 65536 sectors
-	SI_FAT12 = 0x01,
 };
 
 inline SysType getSysTypeFromIndicator(SysIndicator si)
 {
 	switch(si) {
-	case SI_EXFAT:
-		return SysType::exfat;
-	case SI_FAT32X:
-		return SysType::fat32;
+	case SI_FAT12:
+		return SysType::fat12;
 	case SI_FAT16:
 	case SI_FAT16B:
 		return SysType::fat16;
-	case SI_FAT12:
-		return SysType::fat12;
+	case SI_FAT32X:
+		return SysType::fat32;
+	case SI_EXFAT:
+		return SysType::exfat;
 	default:
 		return SysType::unknown;
 	}
