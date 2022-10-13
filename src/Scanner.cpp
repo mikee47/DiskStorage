@@ -246,10 +246,10 @@ std::unique_ptr<PartInfo> Scanner::next()
 			auto part = identify(device, buffer, offset);
 			if(part == nullptr) {
 				part = new PartInfo{};
-				part->name = "MBR" + String(mbrPartID);
 				part->offset = offset;
 				part->size = entry.size_in_lba << sectorSizeShift;
 			}
+			part->name = "mbr" + String(mbrPartID);
 			part->sysind = SysIndicator(entry.os_type);
 			part->systype = getSysTypeFromIndicator(part->sysind);
 			if(part->type == Partition::Type::invalid && fatTypes[part->systype]) {
