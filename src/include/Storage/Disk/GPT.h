@@ -22,7 +22,9 @@
 #include "PartInfo.h"
 #include "Error.h"
 
-namespace Storage::Disk::GPT
+namespace Storage::Disk
+{
+namespace GPT
 {
 #define EFI_PARTITION_TYPE_GUID_MAP(XX)                                                                                \
 	XX(PARTITION_SYSTEM, 0xC12A7328, 0xF81F, 0x11d2, 0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B)                   \
@@ -72,6 +74,8 @@ public:
  */
 String getTypeName(const Uuid& typeGuid);
 
+} // namespace GPT
+
 /**
  * @brief Re-partition a device with the given set of GPT BASIC partitions
  * @param device
@@ -82,6 +86,6 @@ String getTypeName(const Uuid& typeGuid);
  *
  * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
-ErrorCode formatDisk(Device& device, PartitionTable& partitions, const Uuid& diskGuid = {});
+ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGuid = {});
 
-} // namespace Storage::Disk::GPT
+} // namespace Storage::Disk

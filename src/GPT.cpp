@@ -25,7 +25,9 @@
 #include <FlashString/Array.hpp>
 
 // Definitions from FileSystem
-namespace Storage::Disk::GPT
+namespace Storage::Disk
+{
+namespace GPT
 {
 #define XX(name, ...) const Uuid name##_GUID PROGMEM{__VA_ARGS__};
 EFI_PARTITION_TYPE_GUID_MAP(XX)
@@ -53,8 +55,10 @@ String getTypeName(const Uuid& typeGuid)
 	return nullptr;
 }
 
+} // namespace GPT
+
 /* Create partitions in GPT format */
-ErrorCode formatDisk(Device& device, PartitionTable& partitions, const Uuid& diskGuid)
+ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGuid)
 {
 	if(partitions.isEmpty()) {
 		return Error::BadParam;
@@ -236,4 +240,4 @@ ErrorCode formatDisk(Device& device, PartitionTable& partitions, const Uuid& dis
 	return partitionCount;
 }
 
-} // namespace Storage::Disk::GPT
+} // namespace Storage::Disk

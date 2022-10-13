@@ -22,7 +22,9 @@
 #include "PartInfo.h"
 #include "Error.h"
 
-namespace Storage::Disk::MBR
+namespace Storage::Disk
+{
+namespace MBR
 {
 class PartitionTable : public Partition::Info::OwnedList
 {
@@ -51,6 +53,8 @@ public:
 	}
 };
 
+} // namespace MBR
+
 /**
  * @brief Re-partition a device with the given set of partitions using the MBR scheme
  * @param device
@@ -60,6 +64,6 @@ public:
  *
  * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
-ErrorCode formatDisk(Device& device, PartitionTable& partitions);
+ErrorCode formatDisk(Device& device, MBR::PartitionTable& table);
 
-} // namespace Storage::Disk::MBR
+} // namespace Storage::Disk

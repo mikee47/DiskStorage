@@ -24,9 +24,9 @@
 #include <Storage/Disk/diskdefs.h>
 
 // Definitions from FileSystem
-namespace Storage::Disk::MBR
+namespace Storage::Disk
 {
-ErrorCode formatDisk(Device& device, PartitionTable& partitions)
+ErrorCode formatDisk(Device& device, MBR::PartitionTable& table)
 {
 	if(partitions.isEmpty() || partitions.count() > 4) {
 		return Error::BadParam;
@@ -133,4 +133,4 @@ ErrorCode formatDisk(Device& device, PartitionTable& partitions)
 	return partIndex;
 }
 
-} // namespace Storage::Disk::MBR
+} // namespace Storage::Disk
