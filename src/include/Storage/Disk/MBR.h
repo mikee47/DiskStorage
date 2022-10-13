@@ -59,11 +59,11 @@ public:
  * @brief Re-partition a device with the given set of partitions using the MBR scheme
  * @param device
  * @param partitions List of partition specifications
- * @retval ErrorCode On success, number of partitions created
+ * @retval Error
  * @note All existing partition information is destroyed
  *
  * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
-ErrorCode formatDisk(Device& device, MBR::PartitionTable& table);
+Error formatDisk(Device& device, MBR::PartitionTable& table);
 
 } // namespace Storage::Disk

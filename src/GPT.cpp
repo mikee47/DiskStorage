@@ -58,7 +58,7 @@ String getTypeName(const Uuid& typeGuid)
 } // namespace GPT
 
 /* Create partitions in GPT format */
-ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGuid)
+Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGuid)
 {
 	if(partitions.isEmpty()) {
 		return Error::BadParam;
@@ -93,13 +93,12 @@ ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& dis
 	const uint64_t firstAllocatableSector = align_up(2 + numPartitionTableSectors, partAlignSectors);
 	const uint64_t allocatableSectors = backupPartitionTableSector - firstAllocatableSector;
 	auto err = validate(partitions, firstAllocatableSector, allocatableSectors, sectorSize);
-	if(err) {
+	if(!!err) {
 		return err;
 	}
 
-	uint32_t bcc = 0; // Cumulative partition entry checksum
+	uint32_t bcc = 0;			 // Cumulative partition entry checksum
 	unsigned partitionIndex = 0; // partition table index
-	unsigned partitionCount = 0; // Number of partitions created
 	auto entries = workBuffer.as<gpt_entry_t[]>();
 	const auto entriesPerSector = sectorSize / sizeof(gpt_entry_t);
 	auto part = partitions.begin();
@@ -128,7 +127,6 @@ ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& dis
 				entry.partition_name[j] = *namePtr;
 			}
 
-			++partitionCount;
 			++part;
 		}
 
@@ -210,7 +208,7 @@ ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& dis
 		pt.add(partitions.pop());
 	}
 
-	return partitionCount;
+	return Error::Success;
 }
 
 } // namespace Storage::Disk

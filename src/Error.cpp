@@ -19,20 +19,15 @@
 
 #include <Storage/Disk/Error.h>
 
-namespace Storage::Disk::Error
+String toString(Storage::Disk::Error err)
 {
-String toString(ErrorCode err)
-{
-	err = std::min(err, 0);
 	switch(err) {
 #define XX(tag, ...)                                                                                                   \
-	case tag:                                                                                                          \
+	case Storage::Disk::Error::tag:                                                                                    \
 		return F(#tag);
 		DISK_ERRORCODE_MAP(XX)
 #undef XX
 	default:
-		return F("Error #") + err;
+		return nullptr;
 	}
 }
-
-} // namespace Storage::Disk::Error

@@ -23,10 +23,6 @@
 
 namespace Storage::Disk
 {
-using ErrorCode = int;
-
-namespace Error
-{
 #define DISK_ERRORCODE_MAP(XX)                                                                                         \
 	XX(Success, "Success")                                                                                             \
 	XX(BadParam, "Invalid parameter(s)")                                                                               \
@@ -38,19 +34,17 @@ namespace Error
 	XX(WriteFailure, "Media write failed")                                                                             \
 	XX(EraseFailure, "Media erase failed")
 
-enum class Value {
+enum class Error {
 #define XX(tag, ...) tag,
 	DISK_ERRORCODE_MAP(XX)
 #undef XX
 };
 
-enum {
-#define XX(tag, ...) tag = -int(Value::tag),
-	DISK_ERRORCODE_MAP(XX)
-#undef XX
-};
+inline bool operator!(Error err)
+{
+	return err == Error::Success;
+}
 
-String toString(ErrorCode err);
-
-} // namespace Error
 } // namespace Storage::Disk
+
+String toString(Storage::Disk::Error err);

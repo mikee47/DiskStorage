@@ -80,11 +80,11 @@ String getTypeName(const Uuid& typeGuid);
  * @param device
  * @param partitions List of partition specifications
  * @param numSpecs Number of partitions to create
- * @retval ErrorCode On success, number of partitions created
- * @note All existing partition information is destroyed
+ * @retval Error
+ * @note All existing partition information is overwritten.
  *
  * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
-ErrorCode formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGuid = {});
+Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGuid = {});
 
 } // namespace Storage::Disk

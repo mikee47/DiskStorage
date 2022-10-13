@@ -26,7 +26,7 @@
 // Definitions from FileSystem
 namespace Storage::Disk
 {
-ErrorCode formatDisk(Device& device, MBR::PartitionTable& table)
+Error formatDisk(Device& device, MBR::PartitionTable& table)
 {
 	if(partitions.isEmpty() || partitions.count() > 4) {
 		return Error::BadParam;
@@ -47,7 +47,7 @@ ErrorCode formatDisk(Device& device, MBR::PartitionTable& table)
 	const uint32_t firstAllocatableSector = PARTITION_ALIGN >> sectorSizeShift;
 	const uint32_t allocatableSectors = numDeviceSectors - firstAllocatableSector;
 	auto err = validate(partitions, firstAllocatableSector, allocatableSectors, sectorSize);
-	if(err) {
+	if(!!err) {
 		return err;
 	}
 
@@ -118,7 +118,7 @@ ErrorCode formatDisk(Device& device, MBR::PartitionTable& table)
 		pt.add(partitions.pop());
 	}
 
-	return partIndex;
+	return Error::Success;
 }
 
 } // namespace Storage::Disk

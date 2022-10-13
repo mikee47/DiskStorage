@@ -23,9 +23,7 @@
 #include <Data/Uuid.h>
 #include "Error.h"
 
-namespace Storage
-{
-namespace Disk
+namespace Storage::Disk
 {
 /*
  * While not a native feature of file systems, operating systems should also aim to align partitions correctly,
@@ -138,7 +136,7 @@ class BasePartitionTable : public Partition::Info::OwnedList
  * @param firstAvailableBlock First block number which may be allocated to a partition
  * @param totalAvailableBlocks Number of blocks available for partition allocation
  * @param blockSize Size of a block
- * @retval ErrorCode
+ * @retval Error
  *
  * For each partition:
  *
@@ -147,10 +145,9 @@ class BasePartitionTable : public Partition::Info::OwnedList
  *
  * On success, partition entries are ordered by position.
  */
-ErrorCode validate(BasePartitionTable& table, storage_size_t firstAvailableBlock, storage_size_t totalAvailableBlocks,
-				   uint32_t blockSize);
+Error validate(BasePartitionTable& table, storage_size_t firstAvailableBlock, storage_size_t totalAvailableBlocks,
+			   uint32_t blockSize);
 
-} // namespace Disk
-} // namespace Storage
+} // namespace Storage::Disk
 
 String toString(Storage::Disk::SysType type);

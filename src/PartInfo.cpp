@@ -95,8 +95,8 @@ size_t PartInfo::printTo(Print& p) const
 	return n;
 }
 
-ErrorCode validate(BasePartitionTable& table, storage_size_t firstAvailableBlock, storage_size_t totalAvailableBlocks,
-				   uint32_t blockSize)
+Error validate(BasePartitionTable& table, storage_size_t firstAvailableBlock, storage_size_t totalAvailableBlocks,
+			   uint32_t blockSize)
 {
 	if(firstAvailableBlock == 0 || blockSize == 0) {
 		return Error::BadParam;
