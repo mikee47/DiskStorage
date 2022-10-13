@@ -104,6 +104,8 @@ struct DiskPart {
  * A disk Storage::Partition refers to this instance.
  */
 struct PartInfo : public Partition::Info, public DiskPart {
+	using OwnedList = OwnedLinkedObjectListTemplate<PartInfo>;
+
 	template <typename... Args> PartInfo(Args... args) : Partition::Info(args...), DiskPart()
 	{
 	}
@@ -127,7 +129,7 @@ struct PartInfo : public Partition::Info, public DiskPart {
 /**
  * @brief Common type for MBR/GPT partition table
  */
-class BasePartitionTable : public Partition::Info::OwnedList
+class BasePartitionTable : public PartInfo::OwnedList
 {
 };
 

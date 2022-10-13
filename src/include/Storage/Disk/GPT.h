@@ -62,8 +62,12 @@ public:
 			return false;
 		}
 		part->systype = sysType;
-		part->typeGuid = typeGuid;
-		part->uniqueGuid = uniqueGuid;
+		part->typeGuid = typeGuid ?: GPT::PARTITION_BASIC_DATA_GUID;
+		if(uniqueGuid) {
+			part->uniqueGuid = uniqueGuid;
+		} else {
+			part->uniqueGuid.generate();
+		}
 		return BasePartitionTable::add(part);
 	}
 };
@@ -76,14 +80,10 @@ String getTypeName(const Uuid& typeGuid);
 } // namespace GPT
 
 /**
- * @brief Re-partition a device with the given set of GPT BASIC partitions
+ * @brief Partition a device using the GPT scheme
  * @param device
- * @param partitions List of partition specifications
- * @param numSpecs Number of partitions to create
+ * @param table Partitions to create
  * @retval Error
- * @note All existing partition information is overwritten.
- *
- * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
 Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGuid = {});
 

@@ -48,21 +48,17 @@ public:
 		}
 		part->systype = sysType;
 		part->sysind = sysIndicator;
-		Partition::Info::OwnedList::add(part);
-		return true;
+		return BasePartitionTable::add(part);
 	}
 };
 
 } // namespace MBR
 
 /**
- * @brief Re-partition a device with the given set of partitions using the MBR scheme
+ * @brief Partition a device using the MBR scheme
  * @param device
- * @param partitions List of partition specifications
+ * @param table Partitions to create
  * @retval Error
- * @note All existing partition information is destroyed
- *
- * Returned number of partitions may be fewer than requested if there was insufficient space.
  */
 Error formatDisk(Device& device, MBR::PartitionTable& table);
 

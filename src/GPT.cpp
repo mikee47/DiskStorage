@@ -60,7 +60,7 @@ String getTypeName(const Uuid& typeGuid)
 /* Create partitions in GPT format */
 Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGuid)
 {
-	if(partitions.isEmpty()) {
+	if(table.isEmpty()) {
 		return Error::BadParam;
 	}
 
@@ -92,7 +92,7 @@ Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGui
 
 	const uint64_t firstAllocatableSector = align_up(2 + numPartitionTableSectors, partAlignSectors);
 	const uint64_t allocatableSectors = backupPartitionTableSector - firstAllocatableSector;
-	auto err = validate(partitions, firstAllocatableSector, allocatableSectors, sectorSize);
+	auto err = validate(table, firstAllocatableSector, allocatableSectors, sectorSize);
 	if(!!err) {
 		return err;
 	}
@@ -101,7 +101,7 @@ Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGui
 	unsigned partitionIndex = 0; // partition table index
 	auto entries = workBuffer.as<gpt_entry_t[]>();
 	const auto entriesPerSector = sectorSize / sizeof(gpt_entry_t);
-	auto part = partitions.begin();
+	auto part = table.begin();
 	for(; partitionIndex < GPT_ITEMS; ++partitionIndex) {
 		auto i = partitionIndex % entriesPerSector;
 		if(i == 0) {
@@ -111,16 +111,15 @@ Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGui
 		auto& entry = entries[i];
 
 		// Add a partition?
-		if(part != partitions.end()) {
+		if(part != table.end()) {
 			auto dp = part->diskpart();
-			entry.partition_type_guid = dp && dp->typeGuid ? dp->typeGuid : GPT::PARTITION_BASIC_DATA_GUID;
-			if(dp && dp->uniqueGuid) {
-				entry.unique_partition_guid = dp->uniqueGuid;
-			} else {
-				entry.unique_partition_guid.generate();
-			}
-			entry.starting_lba = part->offset >> sectorSizeShift;
-			entry.ending_lba = entry.starting_lba + (part->size >> sectorSizeShift) - 1;
+			assert(dp != nullptr);
+			entry = gpt_entry_t{
+				.partition_type_guid = dp->typeGuid,
+				.unique_partition_guid = dp->uniqueGuid,
+				.starting_lba = part->offset >> sectorSizeShift,
+				.ending_lba = ((uint64_t(part->offset) + part->size) >> sectorSizeShift) - 1,
+			};
 
 			auto namePtr = part->name.c_str();
 			for(unsigned j = 0; j < ARRAY_SIZE(entry.partition_name) && *namePtr != '\0'; ++j, ++namePtr) {
@@ -204,8 +203,8 @@ Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGui
 
 	auto& pt = static_cast<CustomDevice&>(device).partitions();
 	pt.clear();
-	while(!partitions.isEmpty()) {
-		pt.add(partitions.pop());
+	while(!table.isEmpty()) {
+		pt.add(table.pop());
 	}
 
 	return Error::Success;

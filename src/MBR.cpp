@@ -28,7 +28,7 @@ namespace Storage::Disk
 {
 Error formatDisk(Device& device, MBR::PartitionTable& table)
 {
-	if(partitions.isEmpty() || partitions.count() > 4) {
+	if(table.isEmpty() || table.count() > 4) {
 		return Error::BadParam;
 	}
 
@@ -46,7 +46,7 @@ Error formatDisk(Device& device, MBR::PartitionTable& table)
 	const uint32_t numDeviceSectors = device.getSectorCount();
 	const uint32_t firstAllocatableSector = PARTITION_ALIGN >> sectorSizeShift;
 	const uint32_t allocatableSectors = numDeviceSectors - firstAllocatableSector;
-	auto err = validate(partitions, firstAllocatableSector, allocatableSectors, sectorSize);
+	auto err = validate(table, firstAllocatableSector, allocatableSectors, sectorSize);
 	if(!!err) {
 		return err;
 	}
@@ -70,7 +70,7 @@ Error formatDisk(Device& device, MBR::PartitionTable& table)
 	auto& mbr = workBuffer.as<legacy_mbr_t>();
 
 	unsigned partIndex{0};
-	for(auto& part : partitions) {
+	for(auto& part : table) {
 		struct CHS {
 			uint8_t head;
 			uint8_t sector;
@@ -114,8 +114,8 @@ Error formatDisk(Device& device, MBR::PartitionTable& table)
 
 	auto& pt = static_cast<CustomDevice&>(device).partitions();
 	pt.clear();
-	while(!partitions.isEmpty()) {
-		pt.add(partitions.pop());
+	while(!table.isEmpty()) {
+		pt.add(table.pop());
 	}
 
 	return Error::Success;
