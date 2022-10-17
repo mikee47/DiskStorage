@@ -22,7 +22,6 @@
 #include "include/Storage/Disk/Scanner.h"
 #include "include/Storage/Disk/GPT.h"
 #include "include/Storage/Disk/diskdefs.h"
-#include <Storage/CustomDevice.h>
 #include <debug_progmem.h>
 
 namespace Storage::Disk

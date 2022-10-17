@@ -19,7 +19,6 @@
  ****/
 
 #include <Storage/Disk/GPT.h>
-#include <Storage/CustomDevice.h>
 #include <Storage/Disk/SectorBuffer.h>
 #include <Storage/Disk/diskdefs.h>
 #include <FlashString/Array.hpp>
@@ -58,7 +57,7 @@ String getTypeName(const Uuid& typeGuid)
 } // namespace GPT
 
 /* Create partitions in GPT format */
-Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGuid)
+Error formatDisk(BlockDevice& device, GPT::PartitionTable& table, const Uuid& diskGuid)
 {
 	if(table.isEmpty()) {
 		return Error::BadParam;
@@ -201,7 +200,7 @@ Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGui
 		return Error::WriteFailure;
 	}
 
-	auto& pt = static_cast<CustomDevice&>(device).partitions();
+	auto& pt = device.editablePartitions();
 	pt.clear();
 	while(!table.isEmpty()) {
 		pt.add(table.pop());

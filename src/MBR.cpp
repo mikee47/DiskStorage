@@ -19,14 +19,13 @@
  ****/
 
 #include <Storage/Disk/MBR.h>
-#include <Storage/CustomDevice.h>
 #include <Storage/Disk/SectorBuffer.h>
 #include <Storage/Disk/diskdefs.h>
 
 // Definitions from FileSystem
 namespace Storage::Disk
 {
-Error formatDisk(Device& device, MBR::PartitionTable& table)
+Error formatDisk(BlockDevice& device, MBR::PartitionTable& table)
 {
 	if(table.isEmpty() || table.count() > 4) {
 		return Error::BadParam;
@@ -112,7 +111,7 @@ Error formatDisk(Device& device, MBR::PartitionTable& table)
 		return Error::WriteFailure;
 	}
 
-	auto& pt = static_cast<CustomDevice&>(device).partitions();
+	auto& pt = device.editablePartitions();
 	pt.clear();
 	while(!table.isEmpty()) {
 		pt.add(table.pop());

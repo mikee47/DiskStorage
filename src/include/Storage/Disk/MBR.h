@@ -21,6 +21,7 @@
 
 #include "PartInfo.h"
 #include "Error.h"
+#include "BlockDevice.h"
 
 namespace Storage::Disk
 {
@@ -35,10 +36,12 @@ public:
 	 * @param SysIndicator Appropriate system code SI_xxx
 	 * @param offset Start offset, or 0 to have position calculated
 	 * @param size Size of partition (in bytes), or percentage (0-100) of total partitionable disk space
+	 * @param flags
 	 * @retval bool true on success
 	 * @note MBR does not have partition name field; this will appear as 'mbr1', 'mbr2', etc.
 	 */
-	bool add(SysType sysType, SysIndicator sysIndicator, storage_size_t offset, storage_size_t size)
+	bool add(SysType sysType, SysIndicator sysIndicator, storage_size_t offset, storage_size_t size,
+			 Partition::Flags flags = 0)
 	{
 		auto part =
 			new PartInfo(nullptr, fatTypes[sysType] ? Partition::SubType::Data::fat : Partition::SubType::Data::any,
@@ -60,6 +63,6 @@ public:
  * @param table Partitions to create
  * @retval Error
  */
-Error formatDisk(Device& device, MBR::PartitionTable& table);
+Error formatDisk(BlockDevice& device, MBR::PartitionTable& table);
 
 } // namespace Storage::Disk

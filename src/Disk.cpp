@@ -1,13 +1,13 @@
 #include "include/Storage/Disk.h"
 #include "include/Storage/Disk/Scanner.h"
-#include <Storage/CustomDevice.h>
+#include <Storage/Device.h>
 
 namespace Storage::Disk
 {
 bool scanPartitions(Device& device)
 {
-	auto& dev = static_cast<CustomDevice&>(device);
-	dev.partitions().clear();
+	auto& pt = device.editablePartitions();
+	pt.clear();
 
 	Scanner scanner(device);
 	std::unique_ptr<PartInfo> part;
@@ -15,7 +15,7 @@ bool scanPartitions(Device& device)
 		if(part->name.length() == 0 && part->uniqueGuid) {
 			part->name = part->uniqueGuid;
 		}
-		dev.partitions().add(part.release());
+		pt.add(part.release());
 	}
 
 	return bool(scanner);

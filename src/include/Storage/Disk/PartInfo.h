@@ -88,10 +88,6 @@ struct DiskPart {
 	SysType systype{};	 ///< Identifies volume filing system type
 	SysIndicator sysind{}; ///< Partition sys value
 
-	DiskPart()
-	{
-	}
-
 	/**
 	 * @brief Print full contents of this structure
 	 */
@@ -106,7 +102,7 @@ struct DiskPart {
 struct PartInfo : public Partition::Info, public DiskPart {
 	using OwnedList = OwnedLinkedObjectListTemplate<PartInfo>;
 
-	template <typename... Args> PartInfo(Args... args) : Partition::Info(args...), DiskPart()
+	template <typename... Args> PartInfo(Args... args) : Partition::Info(args...)
 	{
 	}
 

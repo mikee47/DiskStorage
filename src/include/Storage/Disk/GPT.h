@@ -21,6 +21,7 @@
 
 #include "PartInfo.h"
 #include "Error.h"
+#include "BlockDevice.h"
 
 namespace Storage::Disk
 {
@@ -78,10 +79,11 @@ public:
 	 * @param size Size of partition (in bytes), or percentage (0-100) of total partitionable disk space
 	 * @param uniqueGuid Unique partition identifier (optional: will be generated if not provided)
 	 * @param typeGuid Partition type GUID (default is BASIC_DATA)
+	 * @param flags
 	 * @retval bool true on success
 	 */
 	bool add(const String& name, SysType sysType, storage_size_t offset, storage_size_t size,
-			 const Uuid& uniqueGuid = {}, const Uuid& typeGuid = {})
+			 const Uuid& uniqueGuid = {}, const Uuid& typeGuid = {}, Partition::Flags flags = 0)
 	{
 		auto part = new PartInfo(
 			name, fatTypes[sysType] ? Partition::SubType::Data::fat : Partition::SubType::Data::any, offset, size, 0);
@@ -105,18 +107,23 @@ public:
 	 * @param offset Start offset, or 0 to have position calculated
 	 * @param size Size of partition (in bytes), or percentage (0-100) of total partitionable disk space
 	 * @param uniqueGuid Unique partition identifier (optional: will be generated if not provided)
+	 * @param flags
 	 * @retval bool true on success
 	 * @note These partitions use a custom type GUID and won't be recognised by external software.
 	 */
 	bool add(const String& name, Partition::FullType type, storage_size_t offset, storage_size_t size,
-			 const Uuid& uniqueGuid = {})
+			 const Uuid& uniqueGuid = {}, Partition::Flags flags = 0)
 	{
 		auto part = new PartInfo(name, type, offset, size, 0);
 		if(part == nullptr) {
 			return false;
 		}
 
-		part->typeGuid = SmingTypeGuid(type);
+		if(type == Partition::SubType::Data::fat) {
+			part->typeGuid = GPT::PARTITION_BASIC_DATA_GUID;
+		} else {
+			part->typeGuid = SmingTypeGuid(type);
+		}
 		if(uniqueGuid) {
 			part->uniqueGuid = uniqueGuid;
 		} else {
@@ -139,6 +146,6 @@ String getTypeName(const Uuid& typeGuid);
  * @param table Partitions to create
  * @retval Error
  */
-Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGuid = {});
+Error formatDisk(BlockDevice& device, GPT::PartitionTable& table, const Uuid& diskGuid = {});
 
 } // namespace Storage::Disk
