@@ -36,6 +36,33 @@ namespace GPT
 	XX(PARTITION_LINUX_LVM, 0xe6d6d379, 0xf507, 0x44c2, 0xa2, 0x3c, 0x23, 0x8f, 0x2a, 0x3d, 0xf9, 0x28)                \
 	XX(PARTITION_LINUX_DATA, 0x0fc63daf, 0x8483, 0x4772, 0x8e, 0x79, 0x3d, 0x69, 0xd8, 0x47, 0x7d, 0xe4)
 
+// Base GUID type for regular Sming partition types; node[0..1] indicate type and subtype
+struct SmingTypeGuid : public Uuid {
+	static constexpr Uuid PROGMEM baseguid{0x3cd54234, 0xcb54, 0x4ed5, 0xbc, 0x8b, 0x00, 0x00, 0x7d, 0x42, 0x84, 0x70};
+
+	SmingTypeGuid() : Uuid(baseguid)
+	{
+	}
+
+	SmingTypeGuid(Partition::FullType fulltype) : SmingTypeGuid()
+	{
+		node[0] = uint8_t(fulltype.type);
+		node[1] = fulltype.subtype;
+	}
+
+	static Partition::FullType match(const Uuid& guid)
+	{
+		auto tmp = guid;
+		Partition::FullType ft{Partition::Type(tmp.node[0]), tmp.node[1]};
+		tmp.node[0] = 0;
+		tmp.node[1] = 0;
+		if(baseguid != tmp) {
+			ft = Partition::FullType{};
+		}
+		return ft;
+	}
+};
+
 #define XX(name, ...) extern const Uuid name##_GUID;
 EFI_PARTITION_TYPE_GUID_MAP(XX)
 #undef XX
@@ -44,9 +71,9 @@ class PartitionTable : public BasePartitionTable
 {
 public:
 	/**
-	 * @brief Add a new GPT partition definition
+	 * @brief Add a new standard GPT partition definition
 	 * @param name Partition name
-	 * @param sysType Intended content for this partition (or 'unknown')
+	 * @param sysType Intended content for this partition
 	 * @param offset Start offset, or 0 to have position calculated
 	 * @param size Size of partition (in bytes), or percentage (0-100) of total partitionable disk space
 	 * @param uniqueGuid Unique partition identifier (optional: will be generated if not provided)
@@ -63,6 +90,33 @@ public:
 		}
 		part->systype = sysType;
 		part->typeGuid = typeGuid ?: GPT::PARTITION_BASIC_DATA_GUID;
+		if(uniqueGuid) {
+			part->uniqueGuid = uniqueGuid;
+		} else {
+			part->uniqueGuid.generate();
+		}
+		return BasePartitionTable::add(part);
+	}
+
+	/**
+	 * @brief Add a new GPT partition for a regular Sming filing system
+	 * @param name Partition name
+	 * @param type Sming partition type/subtype
+	 * @param offset Start offset, or 0 to have position calculated
+	 * @param size Size of partition (in bytes), or percentage (0-100) of total partitionable disk space
+	 * @param uniqueGuid Unique partition identifier (optional: will be generated if not provided)
+	 * @retval bool true on success
+	 * @note These partitions use a custom type GUID and won't be recognised by external software.
+	 */
+	bool add(const String& name, Partition::FullType type, storage_size_t offset, storage_size_t size,
+			 const Uuid& uniqueGuid = {})
+	{
+		auto part = new PartInfo(name, type, offset, size, 0);
+		if(part == nullptr) {
+			return false;
+		}
+
+		part->typeGuid = SmingTypeGuid(type);
 		if(uniqueGuid) {
 			part->uniqueGuid = uniqueGuid;
 		} else {

@@ -19,19 +19,17 @@
  *
  ****/
 
-#include <Storage/Disk/Scanner.h>
+#include "include/Storage/Disk/Scanner.h"
+#include "include/Storage/Disk/GPT.h"
+#include "include/Storage/Disk/diskdefs.h"
 #include <Storage/CustomDevice.h>
 #include <debug_progmem.h>
-#include <Storage/Disk/diskdefs.h>
 
 namespace Storage::Disk
 {
 namespace
 {
 #define MAX_FAT12 0xFF5 // Max FAT12 clusters (differs from specs, but right for real DOS/Windows behavior)
-
-#define READ_SECTORS(buff, sector, count) device.read(sector << sectorSizeShift, buff, count << sectorSizeShift)
-#define WRITE_SECTORS(buff, sector, count) device.write(sector << sectorSizeShift, buff, count << sectorSizeShift)
 
 String getLabel(const char* s, unsigned length)
 {
@@ -167,6 +165,10 @@ unsigned Scanner::scanMbrEntries(uint32_t baseLba)
 
 std::unique_ptr<PartInfo> Scanner::next()
 {
+	auto READ_SECTORS = [this](void* dst, storage_size_t sector, size_t count) {
+		return device.read(sector << sectorSizeShift, dst, count << sectorSizeShift);
+	};
+
 	if(state == State::idle) {
 #if DISK_MAX_SECTOR_SIZE != DISK_MIN_SECTOR_SIZE
 		sectorSize = device.getSectorSize();
@@ -281,17 +283,23 @@ std::unique_ptr<PartInfo> Scanner::next()
 				continue;
 			}
 
-			if(!READ_SECTORS(entryBuffer.get(), entry.starting_lba, 1)) {
-				continue;
+			PartInfo* part{nullptr};
+			storage_size_t offset = entry.starting_lba << sectorSizeShift;
+			storage_size_t size = (1 + entry.ending_lba - entry.starting_lba) << sectorSizeShift;
+
+			auto fulltype = GPT::SmingTypeGuid::match(entry.partition_type_guid);
+			if(fulltype) {
+				part = new PartInfo{nullptr, fulltype, offset, size};
+			} else {
+				if(!READ_SECTORS(entryBuffer.get(), entry.starting_lba, 1)) {
+					continue;
+				}
+				part = identify(device, entryBuffer, offset);
+				if(part == nullptr) {
+					part = new PartInfo{nullptr, Partition::FullType{}, offset, size};
+				}
 			}
 
-			storage_size_t offset = entry.starting_lba << sectorSizeShift;
-			auto part = identify(device, entryBuffer, offset);
-			if(part == nullptr) {
-				part = new PartInfo{};
-				part->offset = offset;
-				part->size = (1 + entry.ending_lba - entry.starting_lba) << sectorSizeShift;
-			}
 			part->typeGuid = entry.partition_type_guid;
 			part->uniqueGuid = entry.unique_partition_guid;
 			part->name = unicode_to_oem(entry.partition_name, ARRAY_SIZE(entry.partition_name));
