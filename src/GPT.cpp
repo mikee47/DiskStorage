@@ -197,7 +197,7 @@ Error formatDisk(Device& device, GPT::PartitionTable& table, const Uuid& diskGui
 		}},
 		.signature = MSDOS_MBR_SIGNATURE,
 	};
-	if(!writeSectors(0, &mbr, 1)) {
+	if(!writeSectors(0, &mbr, 1) || !device.sync()) {
 		return Error::WriteFailure;
 	}
 

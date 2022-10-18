@@ -108,7 +108,7 @@ Error formatDisk(Device& device, MBR::PartitionTable& table)
 	}
 
 	mbr.signature = MSDOS_MBR_SIGNATURE;
-	if(!device.write(0, &mbr, sectorSize)) {
+	if(!device.write(0, &mbr, sectorSize) || !device.sync()) {
 		return Error::WriteFailure;
 	}
 
