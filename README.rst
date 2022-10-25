@@ -53,6 +53,14 @@ Partitions may also be used directly without any filing system.
    to disk. Filing systems should take care of this internally when files are closed, for example.
 
 
+Testing
+-------
+
+Linux provides excellent support for testing generated image files.
+
+Windows users may find this tool useful: https://www.diskinternals.com/linux-reader/.
+
+
 Configuration
 -------------
 
