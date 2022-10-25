@@ -106,7 +106,7 @@ struct __attribute__((packed)) exfat_dentry_t {
 	union {
 		struct __attribute__((packed)) {
 			uint8_t num_chars;
-			char label[22];
+			uint16_t label[11];
 			uint8_t reserved;
 		} volume_label;
 		/* file directory entry */
