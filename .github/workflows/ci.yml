@@ -1,10 +1,7 @@
 name: Library CI
 
-on:
-  push:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     uses: mikee47/Sming/.github/workflows/library.yml@feature/library-ci
-    with:
-      sming_repo: https://github.com/SmingHub/Sming
