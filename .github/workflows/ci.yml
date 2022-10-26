@@ -3,6 +3,9 @@ name: Library CI
 on:
   push:
 
+env:
+  CI_SMING_REPO: https://github.com/SmingHub/Sming
+
 jobs:
   build:
     uses: mikee47/Sming/.github/workflows/library.yml@feature/library-ci
