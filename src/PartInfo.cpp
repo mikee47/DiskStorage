@@ -130,7 +130,7 @@ Error validate(BasePartitionTable& table, storage_size_t firstAvailableBlock, st
 				debug_e("[DISK] Partition '%s' mis-aligned", part.name.c_str());
 				return Error::MisAligned;
 			}
-			totalBlocks += align_up(part.size, PARTITION_ALIGN);
+			totalBlocks += align_up(part.size, PARTITION_ALIGN) / blockSize;
 		}
 		if(part.offset != 0 && (part.offset < minOffset || part.offset > maxOffset)) {
 			debug_e("[DISK] Partition '%s' offset outside valid range (%llu <= %llu <= %llu", part.name.c_str(),
