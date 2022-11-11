@@ -99,7 +99,7 @@ PartInfo* identify(Device& device, const SectorBuffer& buffer, storage_size_t of
 		auto part =
 			new PartInfo(nullptr, Partition::SubType::Data::fat, offset, exfat.vol_length << exfat.sect_size_bits, 0);
 		part->systype = SysType::exfat;
-		debug_d("[DD] Found ExFAT @ 0x%llx", offset);
+		debug_d("[DD] Found ExFAT @ 0x%llx", uint64_t(offset));
 		return part;
 	}
 
@@ -110,7 +110,7 @@ PartInfo* identify(Device& device, const SectorBuffer& buffer, storage_size_t of
 			auto part = new PartInfo(getLabel(fat.fat32.vol_label, MSDOS_NAME), Partition::SubType::Data::fat, offset,
 									 (fat.sectors ?: fat.total_sect) * fat.sector_size, 0);
 			part->systype = SysType::fat32;
-			debug_d("[DD] Found FAT32 @ 0x%luu", offset);
+			debug_d("[DD] Found FAT32 @ 0x%llx", uint64_t(offset));
 			return part;
 		}
 
@@ -128,7 +128,7 @@ PartInfo* identify(Device& device, const SectorBuffer& buffer, storage_size_t of
 									 (fat.sectors ?: fat.total_sect) * fat.sector_size, 0);
 			auto numClusters = part->size / (fat.sector_size * fat.sec_per_clus);
 			part->systype = (numClusters <= MAX_FAT12) ? SysType::fat12 : SysType::fat16;
-			debug_d("[DD] Found FAT @ 0x%luu", offset);
+			debug_d("[DD] Found FAT @ 0x%llx", uint64_t(offset));
 			return part;
 		}
 	}
