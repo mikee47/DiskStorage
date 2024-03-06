@@ -31,7 +31,7 @@ class BufferList
 public:
 	BufferList(uint16_t sectorSize, size_t count) : mSize(1 << getSizeBits(count))
 	{
-		list.reset(new Buffer[mSize]);
+		list = std::make_unique<Buffer[]>(mSize);
 		if(!list) {
 			mSize = 0;
 		}

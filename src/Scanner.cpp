@@ -231,7 +231,7 @@ std::unique_ptr<PartInfo> Scanner::next()
 			}
 			state = State::GPT;
 		} else {
-			mbrEntries.reset(new gpt_mbr_record_t[4]);
+			mbrEntries = std::make_unique<gpt_mbr_record_t[]>(4);
 			numPartitionEntries = scanMbrEntries(0);
 			state = State::MBR;
 		}

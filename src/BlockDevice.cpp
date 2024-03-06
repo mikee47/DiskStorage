@@ -117,7 +117,7 @@ bool BlockDevice::write(storage_size_t address, const void* src, size_t size)
 	if(!buffers) {
 		CHECK_ALIGN("write")
 		return raw_sector_write(address >> sectorSizeShift, src, size >> sectorSizeShift);
-		}
+	}
 
 	auto sector = address >> sectorSizeShift;
 	uint32_t offset = address & (sectorSize - 1);
@@ -191,7 +191,7 @@ bool BlockDevice::allocateBuffers(unsigned numBuffers)
 	if(numBuffers == 0) {
 		return true;
 	}
-	buffers.reset(new Disk::BufferList(sectorSize, numBuffers));
+	buffers = std::make_unique<Disk::BufferList>(sectorSize, numBuffers);
 	return buffers && buffers->size() == numBuffers;
 }
 
