@@ -37,6 +37,11 @@ String getTypeName(const Uuid& typeGuid)
 	struct Entry {
 		const Uuid* guid;
 		const FlashString* name;
+
+		bool operator==(const Uuid& guid) const
+		{
+			return *this->guid == guid;
+		}
 	};
 #define XX(name, ...) DEFINE_FSTR_LOCAL(FS_##name, #name)
 	EFI_PARTITION_TYPE_GUID_MAP(XX)
@@ -45,13 +50,8 @@ String getTypeName(const Uuid& typeGuid)
 	DEFINE_FSTR_ARRAY_LOCAL(list, Entry, EFI_PARTITION_TYPE_GUID_MAP(XX))
 #undef XX
 
-	for(auto e : list) {
-		if(*e.guid == typeGuid) {
-			return *e.name;
-		}
-	}
-
-	return nullptr;
+	int i = list.indexOf(typeGuid);
+	return (i < 0) ? String::nullstr : *list[i].name;
 }
 
 } // namespace GPT
