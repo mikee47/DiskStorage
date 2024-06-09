@@ -95,7 +95,7 @@ Error formatDisk(BlockDevice& device, MBR::PartitionTable& table)
 			.start_head = start.head,
 			.start_sector = start.sector,
 			.start_track = start.track,
-			.os_type = dp ? dp->sysind : SI_IFS,
+			.os_type = uint8_t(dp ? dp->sysind : SI_IFS),
 			.end_head = end.head,
 			.end_sector = end.sector,
 			.end_track = end.track,
