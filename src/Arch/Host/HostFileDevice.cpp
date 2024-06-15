@@ -48,8 +48,43 @@ bool zeroSparse(int file, uint64_t offset, uint64_t len)
 #ifdef __WIN32
 	uint64_t data[]{offset, offset + len};
 	return DeviceIoControl(getHandle(file), FSCTL_SET_ZERO_DATA, data, sizeof(data), nullptr, 0, nullptr, nullptr);
+#elif defined(__APPLE__)
+	if(::lseek(file, offset, SEEK_SET) != offset) {
+		return false;
+	}
+	uint8_t buffer[4096]{};
+	while(len != 0) {
+		size_t toWrite = std::min(size_t(len), sizeof(buffer));
+		int written = ::write(file, buffer, toWrite);
+		if(written != toWrite) {
+			return false;
+		}
+		len -= written;
+	}
+	return true;
 #else
 	return fallocate64(file, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, offset, len) == 0;
+#endif
+}
+
+bool truncateFile(int file, uint64_t size)
+{
+#ifdef __WIN32
+	::lseek64(file, size, SEEK_SET);
+	return SetEndOfFile(getHandle(file));
+#elif defined(__APPLE__)
+	return ::ftruncate(file, size) == 0;
+#else
+	return ::ftruncate64(file, size) == 0;
+#endif
+}
+
+int64_t seekFile(int file, int64_t offset, int whence = SEEK_SET)
+{
+#ifdef __APPLE__
+	return ::lseek(file, offset, whence);
+#else
+	return ::lseek64(file, offset, whence);
 #endif
 }
 
@@ -69,16 +104,9 @@ HostFileDevice::HostFileDevice(const String& name, const String& filename, stora
 
 	allocateBuffers(4);
 
-#ifdef __WIN32
-	::lseek64(file, size, SEEK_SET);
-	if(SetEndOfFile(getHandle(file))) {
+	if(truncateFile(file, getSize())) {
 		return;
 	}
-#else
-	if(::ftruncate64(file, getSize()) == 0) {
-		return;
-	}
-#endif
 
 	debug_e("[HFD] Failed to create file '%s', size %llu", name.c_str(), uint64_t(getSize()));
 
@@ -94,7 +122,7 @@ HostFileDevice::HostFileDevice(const String& name, const String& filename) : nam
 	if(file < 0) {
 		return;
 	}
-	auto filesize = ::lseek64(file, 0, SEEK_END);
+	auto filesize = seekFile(file, 0, SEEK_END);
 #ifndef ENABLE_STORAGE_SIZE64
 	if(Storage::isSize64(filesize)) {
 		debug_e("[HFD] Failed to open '%s', too big %llu, require ENABLE_STORAGE_SIZE64=1", name.c_str(), filesize);
@@ -120,7 +148,7 @@ HostFileDevice::~HostFileDevice()
 bool HostFileDevice::raw_sector_read(storage_size_t address, void* dst, size_t size)
 {
 	auto offset = uint64_t(address) << sectorSizeShift;
-	auto res = ::lseek64(file, offset, SEEK_SET);
+	auto res = seekFile(file, offset);
 	if(uint64_t(res) != offset) {
 		return false;
 	}
@@ -133,7 +161,7 @@ bool HostFileDevice::raw_sector_read(storage_size_t address, void* dst, size_t s
 bool HostFileDevice::raw_sector_write(storage_size_t address, const void* src, size_t size)
 {
 	auto offset = uint64_t(address) << sectorSizeShift;
-	auto res = ::lseek64(file, offset, SEEK_SET);
+	auto res = seekFile(file, offset);
 	if(uint64_t(res) != offset) {
 		return false;
 	}
