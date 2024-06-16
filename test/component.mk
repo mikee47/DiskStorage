@@ -25,7 +25,7 @@ APP_CFLAGS += -DRESTART_DELAY=$(RESTART_DELAY)
 
 .PHONY: execute
 execute: flash run
-ifneq ($(UNAME),Windows)
+ifeq ($(UNAME),Linux)
 	$(Q) ./list-part.sh out/test-mbr.img blkid-mbr.txt
 	$(Q) ./list-part.sh out/test-gpt.img blkid-gpt.txt
 endif
