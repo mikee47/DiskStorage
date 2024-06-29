@@ -90,7 +90,7 @@ bool verifyGptHeader(gpt_header_t& gpt)
 	return true;
 }
 
-PartInfo* identify(Device& device, const SectorBuffer& buffer, storage_size_t offset)
+PartInfo* identify(Device&, const SectorBuffer& buffer, storage_size_t offset)
 {
 	auto& fat = buffer.as<const FAT::fat_boot_sector_t>();
 	auto& exfat = buffer.as<const EXFAT::boot_sector_t>();

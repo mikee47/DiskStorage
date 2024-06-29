@@ -19,7 +19,8 @@ namespace Storage::Disk
 		return false;                                                                                                  \
 	}
 
-void BlockDevice::Stat::update(Function fn, uint32_t sector, uint32_t cacheSector)
+void BlockDevice::Stat::update([[maybe_unused]] Function fn, [[maybe_unused]] uint32_t sector,
+							   [[maybe_unused]] uint32_t cacheSector)
 {
 #ifdef ENABLE_BLOCK_DEVICE_STATS
 	unsigned i = (sector == cacheSector) ? 0 : 1;
@@ -30,7 +31,7 @@ void BlockDevice::Stat::update(Function fn, uint32_t sector, uint32_t cacheSecto
 #endif
 }
 
-size_t BlockDevice::Stat::Func::printTo(Print& p) const
+size_t BlockDevice::Stat::Func::printTo([[maybe_unused]] Print& p) const
 {
 	size_t n{0};
 #ifdef ENABLE_BLOCK_DEVICE_STATS

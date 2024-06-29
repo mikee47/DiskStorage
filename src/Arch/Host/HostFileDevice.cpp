@@ -32,7 +32,7 @@ HANDLE getHandle(int file)
 }
 #endif
 
-void setSparse(int file)
+void setSparse([[maybe_unused]] int file)
 {
 #ifdef __WIN32
 	if(!DeviceIoControl(getHandle(file), FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, nullptr, nullptr)) {
