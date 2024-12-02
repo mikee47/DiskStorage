@@ -33,8 +33,16 @@ namespace Storage::Disk
 class BlockDevice : public Device
 {
 public:
-	bool read(storage_size_t address, void* dst, size_t size) override;
-	bool write(storage_size_t address, const void* src, size_t size) override;
+	bool read(storage_size_t address, void* dst, size_t size) override
+	{
+		return transfer(address, dst, size, false);
+	}
+
+	bool write(storage_size_t address, const void* src, size_t size) override
+	{
+		return transfer(address, const_cast<void*>(src), size, true);
+	}
+
 	bool erase_range(storage_size_t address, storage_size_t size) override;
 
 	size_t getBlockSize() const override
@@ -90,6 +98,7 @@ protected:
 	virtual bool raw_sector_erase_range(storage_size_t address, size_t size) = 0;
 	virtual bool raw_sync() = 0;
 
+	bool transfer(storage_size_t address, void* data, size_t size, bool isWrite);
 	bool flushBuffer(Buffer& buf);
 	bool flushBuffers();
 

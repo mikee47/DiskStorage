@@ -13,9 +13,9 @@
 
 namespace Storage::Disk
 {
-#define CHECK_ALIGN(func)                                                                                              \
+#define CHECK_ALIGN()                                                                                                  \
 	if((address & (sectorSize - 1)) != 0 || (size & (sectorSize - 1)) != 0) {                                          \
-		debug_e("[SD] " func " misaligned %llx, %llx", uint64_t(address), uint64_t(size));                             \
+		debug_e("[SD] %s misaligned %llx, %llx", __FUNCTION__, uint64_t(address), uint64_t(size));                     \
 		return false;                                                                                                  \
 	}
 
@@ -76,63 +76,39 @@ size_t BlockDevice::Stat::printTo(Print& p) const
 	return n;
 }
 
-bool BlockDevice::read(storage_size_t address, void* dst, size_t size)
+bool BlockDevice::transfer(storage_size_t address, void* data, size_t size, bool isWrite)
 {
-	if(!buffers) {
-		CHECK_ALIGN("read")
-		return raw_sector_read(address >> sectorSizeShift, dst, size >> sectorSizeShift);
-	}
-
-	auto sector = address >> sectorSizeShift;
 	uint32_t offset = address & (sectorSize - 1);
-	auto dstptr = static_cast<uint8_t*>(dst);
+	bool addressAligned = (offset == 0);
+	uint32_t sizeOffset = size & (sectorSize - 1);
+	bool sizeAligned = (sizeOffset == 0);
 
-	while(size != 0) {
-		size_t chunkSize = std::min(size, size_t(sectorSize - offset));
-		auto& buf = buffers->get(sector);
-		stat.update(stat.read, sector, buf.sector);
-		if(buf.sector != sector) {
-			if(!flushBuffer(buf)) {
-				return false;
-			}
-			buf.invalidate();
-			if(!raw_sector_read(sector, buf.get(), 1)) {
-				return false;
-			}
-			buf.sector = sector;
+	// If sectors are contiguous and aligned we should bypass buffer
+	if(addressAligned && sizeAligned) {
+		if(!buffers || size > buffers->size()) {
+			auto sectorAddress = address >> sectorSizeShift;
+			auto sectorCount = size >> sectorSizeShift;
+			return isWrite ? raw_sector_write(sectorAddress, data, sectorCount)
+						   : raw_sector_read(sectorAddress, data, sectorCount);
 		}
-
-		memcpy(dstptr, &buf[offset], chunkSize);
-
-		dstptr += chunkSize;
-		size -= chunkSize;
-		++sector;
-		offset = 0;
-	}
-
-	return true;
-}
-
-bool BlockDevice::write(storage_size_t address, const void* src, size_t size)
-{
-	if(!buffers) {
-		CHECK_ALIGN("write")
-		return raw_sector_write(address >> sectorSizeShift, src, size >> sectorSizeShift);
+	} else if(!buffers) {
+		CHECK_ALIGN()
 	}
 
 	auto sector = address >> sectorSizeShift;
-	uint32_t offset = address & (sectorSize - 1);
-	auto srcptr = static_cast<const uint8_t*>(src);
+	auto dataptr = static_cast<uint8_t*>(data);
 
 	while(size != 0) {
 		size_t chunkSize = std::min(size, size_t(sectorSize - offset));
 		auto& buf = buffers->get(sector);
-		stat.update(stat.write, sector, buf.sector);
+		stat.update(isWrite ? stat.write : stat.read, sector, buf.sector);
 		if(buf.sector != sector) {
+			// Sector not cached
 			if(!flushBuffer(buf)) {
 				return false;
 			}
-			if(offset != 0 || chunkSize != sectorSize) {
+			// Skip sector read if we're overwriting entire sector
+			if(!isWrite || chunkSize != sectorSize) {
 				buf.invalidate();
 				if(!raw_sector_read(sector, buf.get(), 1)) {
 					return false;
@@ -141,10 +117,14 @@ bool BlockDevice::write(storage_size_t address, const void* src, size_t size)
 			buf.sector = sector;
 		}
 
-		memcpy(&buf[offset], srcptr, chunkSize);
-		buf.dirty = true;
+		if(isWrite) {
+			memcpy(&buf[offset], dataptr, chunkSize);
+			buf.dirty = true;
+		} else {
+			memcpy(dataptr, &buf[offset], chunkSize);
+		}
 
-		srcptr += chunkSize;
+		dataptr += chunkSize;
 		size -= chunkSize;
 		++sector;
 		offset = 0;
@@ -158,7 +138,7 @@ bool BlockDevice::write(storage_size_t address, const void* src, size_t size)
  */
 bool BlockDevice::erase_range(storage_size_t address, storage_size_t size)
 {
-	CHECK_ALIGN("erase")
+	CHECK_ALIGN()
 
 	address >>= sectorSizeShift;
 	size >>= sectorSizeShift;
